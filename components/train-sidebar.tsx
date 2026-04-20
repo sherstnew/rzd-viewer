@@ -1,9 +1,19 @@
-﻿import { formatDurationToRu, getDate } from "@/lib/utils"
+﻿import {
+  buildPovResolvedAnchors,
+  getPovSyncState,
+  POV_VIDEO_ANCHORS,
+} from "@/lib/pov-sync"
+import { formatDurationToRu, getDate } from "@/lib/utils"
 import { useCurrentTrainStore } from "@/stores/currentTrainStore"
 import { StepBack } from "lucide-react"
-import { useEffect, useMemo, useRef, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 
 type Nullable<T> = T | null
+
+type ExpandState = {
+  top: boolean
+  bottom: boolean
+}
 
 function toTimestamp(value: Nullable<string>): number | null {
   if (!value) {
@@ -32,59 +42,97 @@ function formatStationTime(value: Nullable<string>): string {
 
 export function TrainSidebar() {
   const { currentTrain, setCurrentTrain } = useCurrentTrainStore()
-  const [showTopStations, setShowTopStations] = useState(false)
-  const [showBottomStations, setShowBottomStations] = useState(false)
+  const [expandedByTrain, setExpandedByTrain] = useState<Record<string, ExpandState>>({})
+  const [nowTimestamp, setNowTimestamp] = useState(() => getDate().getTime())
+
+  useEffect(() => {
+    const id = window.setInterval(() => {
+      setNowTimestamp(getDate().getTime())
+    }, 250)
+
+    return () => {
+      window.clearInterval(id)
+    }
+  }, [])
+
+  const trainUid = currentTrain?.thread.uid ?? null
+  const expansion = trainUid
+    ? (expandedByTrain[trainUid] ?? { top: false, bottom: false })
+    : { top: false, bottom: false }
+
+  const updateExpansion = useCallback(
+    (next: Partial<ExpandState>) => {
+      if (!trainUid) {
+        return
+      }
+
+      setExpandedByTrain((prev) => {
+        const prevState = prev[trainUid] ?? { top: false, bottom: false }
+        return {
+          ...prev,
+          [trainUid]: {
+            ...prevState,
+            ...next,
+          },
+        }
+      })
+    },
+    [trainUid],
+  )
 
   const departureTimestamp = new Date(currentTrain?.departure ?? "").getTime()
   const arrivalTimestamp = new Date(currentTrain?.arrival ?? "").getTime()
 
   const allTime = arrivalTimestamp - departureTimestamp
-  const nowTimestamp = getDate().getTime()
-  const passedTime = Math.min(
-    Math.max(nowTimestamp - departureTimestamp, 0),
-    allTime
-  )
+  const passedTime = Math.min(Math.max(nowTimestamp - departureTimestamp, 0), allTime)
   const passedTimeLabel = formatDurationToRu(passedTime)
   const totalTimeLabel = formatDurationToRu(allTime)
 
   const videoRef = useRef<HTMLVideoElement>(null)
 
-  const videoStationDeparture = currentTrain?.thread_route.stops?.find(
-    (stop) => stop.station.title === "Красный Строитель"
-  )?.departure
-  const isVideoStationLeft = videoStationDeparture
-    ? new Date(videoStationDeparture) <= getDate()
-    : false
+  const routeStops = useMemo(() => currentTrain?.thread_route.stops ?? [], [currentTrain?.thread_route.stops])
 
-  const routeStops = currentTrain?.thread_route.stops ?? []
+  const povAnchors = useMemo(
+    () => buildPovResolvedAnchors(routeStops, POV_VIDEO_ANCHORS),
+    [routeStops],
+  )
+  const povSyncState = useMemo(
+    () => (povAnchors ? getPovSyncState(nowTimestamp, povAnchors) : null),
+    [nowTimestamp, povAnchors],
+  )
+  const isVideoStationLeft = povSyncState?.kind !== "before-start" && Boolean(povSyncState)
+
   const lastStopIndex = Math.max(0, routeStops.length - 1)
 
-  const currentSegment = useMemo(() => {
-    let startIndex = 0
-    let endIndex = Math.min(1, lastStopIndex)
+  let currentSegment = { startIndex: 0, endIndex: Math.min(1, lastStopIndex) }
 
-    for (let i = 0; i < routeStops.length; i += 1) {
-      const stop = routeStops[i]
-      const stationArrival = toTimestamp(stop.arrival)
-      const stationDeparture = toTimestamp(stop.departure)
+  for (let i = 0; i < routeStops.length; i += 1) {
+    const stop = routeStops[i]
+    const stationArrival = toTimestamp(stop.arrival)
+    const stationDeparture = toTimestamp(stop.departure)
 
-      if (
-        stationArrival !== null &&
-        stationDeparture !== null &&
-        stationArrival <= nowTimestamp &&
-        nowTimestamp <= stationDeparture
-      ) {
-        startIndex = i
-        endIndex = Math.min(i + 1, lastStopIndex)
-        return { startIndex, endIndex }
+    if (
+      stationArrival !== null &&
+      stationDeparture !== null &&
+      stationArrival <= nowTimestamp &&
+      nowTimestamp <= stationDeparture
+    ) {
+      currentSegment = {
+        startIndex: i,
+        endIndex: Math.min(i + 1, lastStopIndex),
       }
+      break
     }
+  }
 
+  if (
+    currentSegment.startIndex === 0 &&
+    currentSegment.endIndex === Math.min(1, lastStopIndex)
+  ) {
     for (let i = 0; i < routeStops.length - 1; i += 1) {
       const start = routeStops[i]
       const end = routeStops[i + 1]
-      const startTime =
-        toTimestamp(start.departure) ?? toTimestamp(start.arrival)
+      const startTime = toTimestamp(start.departure) ?? toTimestamp(start.arrival)
       const endTime = toTimestamp(end.arrival) ?? toTimestamp(end.departure)
 
       if (startTime === null || endTime === null) {
@@ -92,30 +140,24 @@ export function TrainSidebar() {
       }
 
       if (startTime <= nowTimestamp && nowTimestamp <= endTime) {
-        startIndex = i
-        endIndex = i + 1
-        return { startIndex, endIndex }
+        currentSegment = {
+          startIndex: i,
+          endIndex: i + 1,
+        }
+        break
       }
     }
+  }
 
-    return { startIndex, endIndex }
-  }, [lastStopIndex, nowTimestamp, routeStops])
+  const topHiddenIndexes: number[] = []
+  for (let i = 1; i < currentSegment.startIndex; i += 1) {
+    topHiddenIndexes.push(i)
+  }
 
-  const topHiddenIndexes = useMemo(() => {
-    const indexes: number[] = []
-    for (let i = 1; i < currentSegment.startIndex; i += 1) {
-      indexes.push(i)
-    }
-    return indexes
-  }, [currentSegment.startIndex])
-
-  const bottomHiddenIndexes = useMemo(() => {
-    const indexes: number[] = []
-    for (let i = currentSegment.endIndex + 1; i < lastStopIndex; i += 1) {
-      indexes.push(i)
-    }
-    return indexes
-  }, [currentSegment.endIndex, lastStopIndex])
+  const bottomHiddenIndexes: number[] = []
+  for (let i = currentSegment.endIndex + 1; i < lastStopIndex; i += 1) {
+    bottomHiddenIndexes.push(i)
+  }
 
   const mapIndexToStationView = (index: number) => {
     const stop = routeStops[index]
@@ -136,64 +178,63 @@ export function TrainSidebar() {
   const topHiddenStations = topHiddenIndexes.map(mapIndexToStationView)
   const bottomHiddenStations = bottomHiddenIndexes.map(mapIndexToStationView)
   const firstStation = routeStops.length > 0 ? mapIndexToStationView(0) : null
-  const lastStation =
-    routeStops.length > 0 ? mapIndexToStationView(lastStopIndex) : null
+  const lastStation = routeStops.length > 0 ? mapIndexToStationView(lastStopIndex) : null
   const currentStartStation = mapIndexToStationView(currentSegment.startIndex)
   const currentEndStation = mapIndexToStationView(currentSegment.endIndex)
 
-  function getVideoSegmentRatio(): number | null {
-    if (!currentTrain || !videoStationDeparture) {
-      return null
-    }
-
-    const videoDepartureTimestamp = new Date(videoStationDeparture).getTime()
-    if (!Number.isFinite(videoDepartureTimestamp)) {
-      return null
-    }
-
-    if (
-      !Number.isFinite(arrivalTimestamp) ||
-      arrivalTimestamp <= videoDepartureTimestamp
-    ) {
-      return null
-    }
-
-    const segmentDuration = arrivalTimestamp - videoDepartureTimestamp
-    const segmentPassed = Math.min(
-      Math.max(nowTimestamp - videoDepartureTimestamp, 0),
-      segmentDuration
-    )
-
-    return segmentPassed / segmentDuration
-  }
-
-  function syncVideoToSegmentProgress() {
-    const ratio = getVideoSegmentRatio()
+  const syncVideoToSegmentProgress = useCallback(() => {
     const video = videoRef.current
 
-    if (
-      ratio === null ||
-      !video ||
-      !Number.isFinite(video.duration) ||
-      video.duration <= 0
-    ) {
+    if (!video || !povSyncState || !Number.isFinite(video.duration) || video.duration <= 0) {
       return
     }
 
-    const nextCurrentTime = video.duration * ratio
-    if (Math.abs(video.currentTime - nextCurrentTime) > 0.75) {
-      video.currentTime = nextCurrentTime
+    const maxPlayableTime = Math.min(video.duration, povSyncState.targetVideoSec)
+    const drift = maxPlayableTime - video.currentTime
+
+    if (povSyncState.kind === "after-end") {
+      if (Math.abs(drift) > 0.2) {
+        video.currentTime = maxPlayableTime
+      }
+      video.playbackRate = 1
+      if (!video.paused) {
+        video.pause()
+      }
+      return
     }
-  }
+
+    if (povSyncState.kind !== "active") {
+      return
+    }
+
+    const hardSeekThresholdSec = 0.45
+    if (Math.abs(drift) > hardSeekThresholdSec) {
+      video.currentTime = maxPlayableTime
+    }
+
+    const minRate = 0.85
+    const maxRate = 1.15
+    const driftCorrectionFactor = 0.35
+    const correctedRate = Math.max(
+      minRate,
+      Math.min(maxRate, povSyncState.basePlaybackRate + drift * driftCorrectionFactor),
+    )
+
+    if (Math.abs(video.playbackRate - correctedRate) > 0.01) {
+      video.playbackRate = correctedRate
+    }
+
+    if (video.paused) {
+      const playPromise = video.play()
+      if (playPromise && typeof playPromise.catch === "function") {
+        playPromise.catch(() => {})
+      }
+    }
+  }, [povSyncState])
 
   useEffect(() => {
     syncVideoToSegmentProgress()
-  }, [passedTime, currentTrain, videoStationDeparture, arrivalTimestamp])
-
-  useEffect(() => {
-    setShowTopStations(false)
-    setShowBottomStations(false)
-  }, [currentTrain?.thread.uid])
+  }, [syncVideoToSegmentProgress])
 
   const renderStationRow = (
     station: {
@@ -202,12 +243,9 @@ export function TrainSidebar() {
       timeLabel: string
       isCurrentSegment: boolean
     },
-    hasConnector: boolean
+    hasConnector: boolean,
   ) => (
-    <div
-      key={`station-${station.index}`}
-      className={`relative pl-8 ${hasConnector ? "pb-4" : ""}`}
-    >
+    <div key={`station-${station.index}`} className={`relative pl-8 ${hasConnector ? "pb-4" : ""}`}>
       {hasConnector ? (
         <div className="absolute top-4 bottom-0 left-[7px] w-0.5 rounded-full bg-sidebar-ring" />
       ) : null}
@@ -222,9 +260,7 @@ export function TrainSidebar() {
       <div>
         <div className="font-medium">{station.title}</div>
         {station.timeLabel ? (
-          <div className="text-sm text-muted-foreground">
-            {station.timeLabel}
-          </div>
+          <div className="text-sm text-muted-foreground">{station.timeLabel}</div>
         ) : null}
       </div>
     </div>
@@ -234,7 +270,7 @@ export function TrainSidebar() {
     key: string,
     label: string,
     onClick: () => void,
-    hasConnector: boolean
+    hasConnector: boolean,
   ) => (
     <div key={key} className={`relative pl-8 ${hasConnector ? "pb-4" : ""}`}>
       {hasConnector ? (
@@ -268,16 +304,16 @@ export function TrainSidebar() {
     routeItems.push({ type: "station", station: firstStation })
   }
 
-  if (!showTopStations && topHiddenStations.length > 0) {
+  if (!expansion.top && topHiddenStations.length > 0) {
     routeItems.push({
       type: "toggle",
       key: "top-expand",
       label: `еще ${topHiddenStations.length} станций`,
-      onClick: () => setShowTopStations(true),
+      onClick: () => updateExpansion({ top: true }),
     })
   }
 
-  if (showTopStations) {
+  if (expansion.top) {
     for (const station of topHiddenStations) {
       routeItems.push({ type: "station", station })
     }
@@ -287,7 +323,7 @@ export function TrainSidebar() {
         type: "toggle",
         key: "top-collapse",
         label: "свернуть",
-        onClick: () => setShowTopStations(false),
+        onClick: () => updateExpansion({ top: false }),
       })
     }
   }
@@ -303,16 +339,16 @@ export function TrainSidebar() {
     routeItems.push({ type: "station", station: currentEndStation })
   }
 
-  if (!showBottomStations && bottomHiddenStations.length > 0) {
+  if (!expansion.bottom && bottomHiddenStations.length > 0) {
     routeItems.push({
       type: "toggle",
       key: "bottom-expand",
       label: `еще ${bottomHiddenStations.length} станций`,
-      onClick: () => setShowBottomStations(true),
+      onClick: () => updateExpansion({ bottom: true }),
     })
   }
 
-  if (showBottomStations) {
+  if (expansion.bottom) {
     for (const station of bottomHiddenStations) {
       routeItems.push({ type: "station", station })
     }
@@ -322,7 +358,7 @@ export function TrainSidebar() {
         type: "toggle",
         key: "bottom-collapse",
         label: "свернуть",
-        onClick: () => setShowBottomStations(false),
+        onClick: () => updateExpansion({ bottom: false }),
       })
     }
   }
@@ -357,12 +393,11 @@ export function TrainSidebar() {
             onLoadedMetadata={syncVideoToSegmentProgress}
             autoPlay
             muted
+            playsInline
           ></video>
         ) : null}
         <div className="flex gap-3">
-          <span
-            style={{ color: currentTrain?.thread.transport_subtype?.color }}
-          >
+          <span style={{ color: currentTrain?.thread.transport_subtype?.color }}>
             {currentTrain?.thread.number}
           </span>
           <div
@@ -389,12 +424,7 @@ export function TrainSidebar() {
                 return renderStationRow(item.station, hasConnector)
               }
 
-              return renderToggleRow(
-                item.key,
-                item.label,
-                item.onClick,
-                hasConnector
-              )
+              return renderToggleRow(item.key, item.label, item.onClick, hasConnector)
             })}
           </div>
         </div>
