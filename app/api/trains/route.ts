@@ -3,15 +3,24 @@ import { NextResponse } from "next/server"
 const YANDEX_API_BASE = "https://api.rasp.yandex.net/v3.0"
 const PODOLSK_CODE = "s9600731"
 const NAKHABINO_CODE = "s9601122"
+const ODINTSOVO_CODE = "s9600721"
+const LOBNYA_CODE = "s9600781"
+const ZELENOGRAD_KRYUKOVO_CODE = "s9600212"
+const IPPODROM_CODE = "s9601197"
 const SEARCH_LIMIT = 200
-const SEARCH_DIRECTIONS: ReadonlyArray<{ from: string; to: string }> = [
-  { from: PODOLSK_CODE, to: NAKHABINO_CODE },
-  { from: NAKHABINO_CODE, to: PODOLSK_CODE },
+const SEARCH_DIRECTIONS: ReadonlyArray<{ from: string; to: string; mcd_route_id: McdRouteId }> = [
+  { from: PODOLSK_CODE, to: NAKHABINO_CODE, mcd_route_id: "mcd2" },
+  { from: NAKHABINO_CODE, to: PODOLSK_CODE, mcd_route_id: "mcd2" },
+  { from: ODINTSOVO_CODE, to: LOBNYA_CODE, mcd_route_id: "mcd1" },
+  { from: LOBNYA_CODE, to: ODINTSOVO_CODE, mcd_route_id: "mcd1" },
+  { from: ZELENOGRAD_KRYUKOVO_CODE, to: IPPODROM_CODE, mcd_route_id: "mcd3" },
+  { from: IPPODROM_CODE, to: ZELENOGRAD_KRYUKOVO_CODE, mcd_route_id: "mcd3" },
 ]
 
-type Nullable<T> = T | null
+type McdRouteId = "mcd1" | "mcd2" | "mcd3"
 
 type SearchSegment = Record<string, unknown> & {
+  mcd_route_id?: McdRouteId
   thread?: {
     uid?: string
   }
@@ -24,11 +33,6 @@ type SearchResponse = {
 type CachedPayload = {
   date: string
   segments: SearchSegment[]
-}
-
-type ThreadError = {
-  status_code: Nullable<number>
-  message: string
 }
 
 let dailyCache: CachedPayload | null = null
@@ -109,79 +113,15 @@ async function fetchSearchSegments(apiKey: string, date: string): Promise<Search
 
     const json = (await response.json()) as SearchResponse
     const segments = Array.isArray(json.segments) ? json.segments : []
-    allSegments.push(...segments)
+    allSegments.push(
+      ...segments.map((segment) => ({
+        ...segment,
+        mcd_route_id: direction.mcd_route_id,
+      })),
+    )
   }
 
   return allSegments
-}
-
-async function fetchThreadRoute(
-  apiKey: string,
-  uid: string,
-  date: string,
-): Promise<{ route: Record<string, unknown> | null; error: ThreadError | null }> {
-  const url = new URL(`${YANDEX_API_BASE}/thread/`)
-  url.searchParams.set("apikey", apiKey)
-  url.searchParams.set("uid", uid)
-  url.searchParams.set("date", date)
-
-  try {
-    const response = await fetchWithRetry(url)
-    if (!response.ok) {
-      const text = await response.text()
-      return {
-        route: null,
-        error: {
-          status_code: response.status,
-          message: text.slice(0, 300),
-        },
-      }
-    }
-
-    const route = (await response.json()) as Record<string, unknown>
-    return { route, error: null }
-  } catch (error) {
-    return {
-      route: null,
-      error: {
-        status_code: null,
-        message: toErrorMessage(error),
-      },
-    }
-  }
-}
-
-async function enrichSegmentsWithThreads(
-  apiKey: string,
-  date: string,
-  segments: SearchSegment[],
-): Promise<SearchSegment[]> {
-  const enriched = await Promise.all(
-    segments.map(async (segment) => {
-      const uid = segment.thread?.uid
-
-      if (!uid) {
-        return {
-          ...segment,
-          thread_route: null,
-          thread_error: {
-            status_code: null,
-            message: "Missing thread uid",
-          } satisfies ThreadError,
-        }
-      }
-
-      const thread = await fetchThreadRoute(apiKey, uid, date)
-
-      return {
-        ...segment,
-        thread_route: thread.route,
-        thread_error: thread.error,
-      }
-    }),
-  )
-
-  return enriched
 }
 
 async function getDailySegments(): Promise<CachedPayload> {
@@ -196,8 +136,7 @@ async function getDailySegments(): Promise<CachedPayload> {
   }
 
   const segments = await fetchSearchSegments(apiKey, today)
-  const enrichedSegments = await enrichSegmentsWithThreads(apiKey, today, segments)
-  const payload = { date: today, segments: enrichedSegments }
+  const payload = { date: today, segments }
   dailyCache = payload
 
   return payload

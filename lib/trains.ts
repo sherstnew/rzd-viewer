@@ -1,6 +1,7 @@
 ﻿import stationsData from "@/jsons/stations.json"
 
 type Nullable<T> = T | null
+export type McdRouteId = "mcd1" | "mcd2" | "mcd3"
 
 interface CarrierCodes {
   sirena: Nullable<string>
@@ -65,7 +66,18 @@ interface Thread {
   stops?: Stop[]
 }
 
+export type ThreadError = {
+  status_code: Nullable<number>
+  message: string
+}
+
+export type TrainThreadPayload = {
+  thread_route: Thread | null
+  thread_error: ThreadError | null
+}
+
 export interface Train {
+  mcd_route_id?: McdRouteId
   thread: Thread
   stops: string
   from: Station
@@ -80,14 +92,12 @@ export interface Train {
   departure: string
   arrival: string
   start_date: string
-  thread_route: Nullable<Thread>
-  thread_error?: Nullable<{
-    status_code: Nullable<number>
-    message: string
-  }>
+  thread_route?: Nullable<Thread>
+  thread_error?: Nullable<ThreadError>
 }
 
-type TrainsData = Train[]
+export type TrainSegment = Train
+type TrainsData = TrainSegment[]
 
 export interface TrainRoutePoint {
   station: Station
@@ -160,6 +170,52 @@ export function findTrains(time: Date, trainsData: TrainsData): TrainWithCoordin
     }
   }
 
+  function interpolateFromTerminals(train: Train): TrainWithCoordinates[] {
+    const depTime = toTimeMs(train.departure)
+    const arrTime = toTimeMs(train.arrival)
+
+    if (
+      depTime === null ||
+      arrTime === null ||
+      !Number.isFinite(depTime) ||
+      !Number.isFinite(arrTime) ||
+      arrTime <= depTime
+    ) {
+      return []
+    }
+
+    const departureCoordinates = stationCoordinatesByCode.get(train.from.code)
+    const arrivalCoordinates = stationCoordinatesByCode.get(train.to.code)
+    if (!departureCoordinates || !arrivalCoordinates) {
+      return []
+    }
+
+    const ratio = Math.min(1, Math.max(0, (currentTimeMs - depTime) / (arrTime - depTime)))
+    const longitude =
+      departureCoordinates.longitude +
+      (arrivalCoordinates.longitude - departureCoordinates.longitude) * ratio
+    const latitude =
+      departureCoordinates.latitude + (arrivalCoordinates.latitude - departureCoordinates.latitude) * ratio
+
+    return [
+      {
+        ...train,
+        longitude,
+        latitude,
+        departure_station: {
+          station: train.from,
+          departure: train.departure,
+          arrival: train.departure,
+        },
+        arrival_station: {
+          station: train.to,
+          departure: train.arrival,
+          arrival: train.arrival,
+        },
+      },
+    ]
+  }
+
   const trains = trainsData.filter(
     (train) =>
       new Date(train.departure).getTime() <= currentTimeMs &&
@@ -168,6 +224,10 @@ export function findTrains(time: Date, trainsData: TrainsData): TrainWithCoordin
 
   return trains.flatMap((train): TrainWithCoordinates[] => {
     const stops = train.thread_route?.stops ?? []
+
+    if (stops.length < 2) {
+      return interpolateFromTerminals(train)
+    }
 
     // If the train is currently dwelling at a station (arrival..departure),
     // keep it visible at that station coordinates.
@@ -221,14 +281,14 @@ export function findTrains(time: Date, trainsData: TrainsData): TrainWithCoordin
     }
 
     if (!segmentStart || !segmentEnd) {
-      return []
+      return interpolateFromTerminals(train)
     }
 
     const depTime = toTimeMs(segmentStart.departure) ?? toTimeMs(segmentStart.arrival)
     const arrTime = toTimeMs(segmentEnd.arrival) ?? toTimeMs(segmentEnd.departure)
 
     if (depTime === null || arrTime === null) {
-      return []
+      return interpolateFromTerminals(train)
     }
 
     const per = ((currentTimeMs - depTime) / (arrTime - depTime)) * 100

@@ -125,6 +125,11 @@ export function TrainSidebar() {
         () => currentTrain?.thread_route?.stops ?? [],
         [currentTrain?.thread_route?.stops]
     );
+    const threadRouteErrorMessage = currentTrain?.thread_error?.message ?? null;
+    const isThreadRouteLoading =
+        Boolean(currentTrain) &&
+        routeStops.length === 0 &&
+        !threadRouteErrorMessage;
 
     const povAnchors = useMemo(
         () => buildPovResolvedAnchors(routeStops, POV_VIDEO_ANCHORS),
@@ -493,6 +498,16 @@ export function TrainSidebar() {
                 </span>
                 <hr className="my-3" />
                 <span className="text-xl">Маршрут</span>
+                {isThreadRouteLoading ? (
+                    <div className="mt-3 text-sm text-muted-foreground">
+                        Загружаем маршрут по станциям...
+                    </div>
+                ) : null}
+                {threadRouteErrorMessage ? (
+                    <div className="mt-3 text-sm text-destructive">
+                        Не удалось загрузить маршрут по станциям: {threadRouteErrorMessage}
+                    </div>
+                ) : null}
 
                 <div className="mt-5 pr-1">
                     <div className="relative">
