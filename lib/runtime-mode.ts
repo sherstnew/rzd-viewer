@@ -1,3 +1,5 @@
+import { getDate } from "./utils"
+
 export type ClockMode = "real" | "fixed-2026-04-18"
 
 const FIXED_DATE_UTC = {
@@ -38,10 +40,10 @@ export function isDevMode(): boolean {
 
 export function getNow(clockMode: ClockMode): Date {
   if (clockMode === "real") {
-    return new Date()
+    return getDate()
   }
 
-  const now = new Date()
+  const now = getDate()
   const { hour, minute, second } = getMoscowTimeParts(now)
   const utcTimestamp = Date.UTC(
     FIXED_DATE_UTC.year,
@@ -64,4 +66,3 @@ export function getDateKey(clockMode: ClockMode): string {
     day: "2-digit",
   }).format(getNow(clockMode))
 }
-

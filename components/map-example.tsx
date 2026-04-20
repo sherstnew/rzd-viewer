@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { useEffect, useMemo, useState } from "react"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FeatureCollection, GeoJsonObject, LineString } from "geojson"
 import L from "leaflet"
 import {
@@ -21,6 +21,7 @@ import stationsData from "@/jsons/stations.json"
 import moscowBigGeoJson from "@/jsons/moscow-big.json"
 import { getNow } from "@/lib/runtime-mode"
 import { TrainSidebar } from "./train-sidebar"
+import { StationSidebar, type StationPhotoItem } from "./station-sidebar"
 import { useCurrentTrainStore } from "@/stores/currentTrainStore"
 import { useTrainsStore } from "@/stores/trainsStore"
 
@@ -47,6 +48,8 @@ type StationCandidate = {
   title: string
   longitude: number
   latitude: number
+  direction: string | null
+  esrCode: string | null
 }
 
 type RouteStation = {
@@ -55,6 +58,8 @@ type RouteStation = {
   title: string
   longitude: number
   latitude: number
+  direction: string | null
+  esrCode: string | null
 }
 
 type RouteDefinition = {
@@ -80,8 +85,12 @@ type RouteStationsById = Record<RouteId, RouteStation[]>
 const TRAIN_ICON_SIZE_PX = 30
 const TRAIN_ICON_MIN_SIZE_PX = 20
 const TRAIN_ICON_MAX_SIZE_PX = 54
+const STATION_MARKER_SIZE_PX = 3
+const STATION_MARKER_MIN_SIZE_PX = 2
+const STATION_MARKER_MAX_SIZE_PX = 7
 const STATION_LABEL_ZOOM_THRESHOLD = 13
 const ROUTE_STATION_DISTANCE_THRESHOLD = 0.00025
+const STATION_SCHEDULE_WINDOW_MS = 3 * 60 * 60 * 1000
 const MCD1_ROUTE_COLOR = "#F6A500"
 const MCD2_ROUTE_COLOR = "#d55384"
 const MCD3_ROUTE_COLOR = "#E95B0C"
@@ -154,6 +163,35 @@ function parseStationCode(value: unknown): string | null {
   return null
 }
 
+function parseDirection(value: unknown): string | null {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim()
+  }
+
+  return null
+}
+
+function parseFirstEsrCode(value: unknown): string | null {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim()
+  }
+
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value)
+  }
+
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const parsed = parseFirstEsrCode(item)
+      if (parsed) {
+        return parsed
+      }
+    }
+  }
+
+  return null
+}
+
 const stationCoordinatesByCode = new Map<string, StationCoordinates>(
   Array.isArray(stationsData)
     ? stationsData.flatMap((station): Array<[string, StationCoordinates]> => {
@@ -199,12 +237,16 @@ const stationCandidates: StationCandidate[] = Array.isArray(stationsData)
       const code = parseStationCode(stationRecord.codes) ?? title
       const longitude = parseCoordinate(stationRecord.longitude)
       const latitude = parseCoordinate(stationRecord.latitude)
+      const direction = parseDirection(stationRecord.direction)
+      const esrCode = parseFirstEsrCode(
+        (stationRecord.codes as { esr_code?: unknown } | undefined)?.esr_code,
+      )
 
       if (!code || !title || longitude === null || latitude === null) {
         return []
       }
 
-      return [{ code, title, longitude, latitude }]
+      return [{ code, title, longitude, latitude, direction, esrCode }]
     })
   : []
 
@@ -368,6 +410,165 @@ function trainIconSizeByZoom(zoom: number): number {
   return Math.round(Math.min(TRAIN_ICON_MAX_SIZE_PX, Math.max(TRAIN_ICON_MIN_SIZE_PX, size)))
 }
 
+function stationMarkerRadiusByZoom(zoom: number): number {
+  const baselineZoom = 10
+  const size = STATION_MARKER_SIZE_PX + (zoom - baselineZoom) * 0.32
+  return Math.min(STATION_MARKER_MAX_SIZE_PX, Math.max(STATION_MARKER_MIN_SIZE_PX, size))
+}
+
+type StationScheduleItem = {
+  key: string
+  timestamp: number
+  arrivalTimeLabel: string | null
+  departureTimeLabel: string | null
+  trainNumber: string
+  trainTitle: string
+  routeLabel: string
+}
+
+function toTimestamp(value: string | null | undefined): number | null {
+  if (!value) {
+    return null
+  }
+
+  const timestamp = new Date(value).getTime()
+  return Number.isFinite(timestamp) ? timestamp : null
+}
+
+function formatScheduleTime(timestamp: number): string {
+  return new Date(timestamp).toLocaleTimeString("ru-RU", {
+    hour: "2-digit",
+    minute: "2-digit",
+  })
+}
+
+function buildStationSchedule(
+  station: Pick<RouteStation, "code" | "title" | "routeId">,
+  nowTimestamp: number,
+  segments: Train[],
+): StationScheduleItem[] {
+  const windowEnd = nowTimestamp + STATION_SCHEDULE_WINDOW_MS
+  const schedule: StationScheduleItem[] = []
+  const normalizedStationTitle = station.title.trim().toLowerCase()
+
+  for (const segment of segments) {
+    if (segment.mcd_route_id && segment.mcd_route_id !== station.routeId) {
+      continue
+    }
+
+    const segmentDeparture = toTimestamp(segment.departure)
+    const segmentArrival = toTimestamp(segment.arrival)
+    if (segmentDeparture === null || segmentArrival === null) {
+      continue
+    }
+
+    const intersectsWindow = segmentArrival >= nowTimestamp && segmentDeparture <= windowEnd
+    if (!intersectsWindow) {
+      continue
+    }
+
+    const routeLabel = `${segment.from.title} - ${segment.to.title}`
+    const stops = segment.thread_route?.stops ?? []
+    let matchedStopArrivalTimestamp: number | null = null
+    let matchedStopDepartureTimestamp: number | null = null
+    let hasMatchedStop = false
+
+    for (let i = 0; i < stops.length; i += 1) {
+      const stop = stops[i]
+      const stopTitle = stop.station.title.trim().toLowerCase()
+      const isSameStation =
+        stop.station.code === station.code || stopTitle === normalizedStationTitle
+      if (!isSameStation) {
+        continue
+      }
+
+      hasMatchedStop = true
+
+      const arrivalTimestamp = toTimestamp(stop.arrival)
+      if (
+        arrivalTimestamp !== null &&
+        arrivalTimestamp >= nowTimestamp &&
+        arrivalTimestamp <= windowEnd
+      ) {
+        matchedStopArrivalTimestamp = arrivalTimestamp
+      }
+
+      const departureTimestamp = toTimestamp(stop.departure)
+      if (
+        departureTimestamp !== null &&
+        departureTimestamp >= nowTimestamp &&
+        departureTimestamp <= windowEnd
+      ) {
+        matchedStopDepartureTimestamp = departureTimestamp
+      }
+    }
+
+    if (
+      hasMatchedStop &&
+      (matchedStopArrivalTimestamp !== null || matchedStopDepartureTimestamp !== null)
+    ) {
+      const sortTimestamp = Math.min(
+        matchedStopArrivalTimestamp ?? Number.POSITIVE_INFINITY,
+        matchedStopDepartureTimestamp ?? Number.POSITIVE_INFINITY,
+      )
+
+      schedule.push({
+        key: `${segment.thread.uid}-${sortTimestamp}`,
+        timestamp: sortTimestamp,
+        arrivalTimeLabel:
+          matchedStopArrivalTimestamp !== null
+            ? formatScheduleTime(matchedStopArrivalTimestamp)
+            : null,
+        departureTimeLabel:
+          matchedStopDepartureTimestamp !== null
+            ? formatScheduleTime(matchedStopDepartureTimestamp)
+            : null,
+        trainNumber: segment.thread.number,
+        trainTitle: segment.thread.title,
+        routeLabel,
+      })
+    }
+
+    if (hasMatchedStop) {
+      continue
+    }
+
+    const isFromStation =
+      segment.from.code === station.code ||
+      segment.from.title.trim().toLowerCase() === normalizedStationTitle
+    const isToStation =
+      segment.to.code === station.code ||
+      segment.to.title.trim().toLowerCase() === normalizedStationTitle
+
+    if (isFromStation && segmentDeparture >= nowTimestamp && segmentDeparture <= windowEnd) {
+      schedule.push({
+        key: `${segment.thread.uid}-segment-departure-${segmentDeparture}`,
+        timestamp: segmentDeparture,
+        arrivalTimeLabel: null,
+        departureTimeLabel: formatScheduleTime(segmentDeparture),
+        trainNumber: segment.thread.number,
+        trainTitle: segment.thread.title,
+        routeLabel,
+      })
+    }
+
+    if (isToStation && segmentArrival >= nowTimestamp && segmentArrival <= windowEnd) {
+      schedule.push({
+        key: `${segment.thread.uid}-segment-arrival-${segmentArrival}`,
+        timestamp: segmentArrival,
+        arrivalTimeLabel: formatScheduleTime(segmentArrival),
+        departureTimeLabel: null,
+        trainNumber: segment.thread.number,
+        trainTitle: segment.thread.title,
+        routeLabel,
+      })
+    }
+  }
+
+  schedule.sort((left, right) => left.timestamp - right.timestamp)
+  return schedule
+}
+
 function trainIconSrc(train: TrainWithCoordinates): string {
   const subtypeTitle = train.thread.transport_subtype?.title?.toLowerCase() ?? ""
 
@@ -434,32 +635,45 @@ function buildAutoStationsForRoute(routeId: RouteId, routeData: RouteGeoJson | n
     { station: StationCandidate; distanceSq: number; segmentIndex: number }
   >()
 
-  const maxDistanceSq = ROUTE_STATION_DISTANCE_THRESHOLD * ROUTE_STATION_DISTANCE_THRESHOLD
+  const strictDistanceSq = ROUTE_STATION_DISTANCE_THRESHOLD * ROUTE_STATION_DISTANCE_THRESHOLD
+  const relaxedDistanceSq = strictDistanceSq * 36
 
   for (const station of stationCandidates) {
     const nearest = findNearestProjection([station.longitude, station.latitude], routeData)
-    if (!nearest || nearest.distanceSq > maxDistanceSq) {
+    if (!nearest) {
       continue
     }
 
     const existing = stationByCode.get(station.code)
-    if (!existing || nearest.distanceSq < existing.distanceSq) {
-      stationByCode.set(station.code, {
-        station,
-        distanceSq: nearest.distanceSq,
-        segmentIndex: nearest.segmentIndex,
-      })
+    if (existing && nearest.distanceSq >= existing.distanceSq) {
+      continue
     }
+
+    stationByCode.set(station.code, {
+      station,
+      distanceSq: nearest.distanceSq,
+      segmentIndex: nearest.segmentIndex,
+    })
   }
 
-  return Array.from(stationByCode.values())
-    .sort((left, right) => left.segmentIndex - right.segmentIndex)
+  const allMatchedStations = Array.from(stationByCode.values()).sort(
+    (left, right) => left.segmentIndex - right.segmentIndex,
+  )
+  const strictStations = allMatchedStations.filter((item) => item.distanceSq <= strictDistanceSq)
+  const stationsToRender =
+    strictStations.length >= 2
+      ? strictStations
+      : allMatchedStations.filter((item) => item.distanceSq <= relaxedDistanceSq)
+
+  return stationsToRender
     .map(({ station }) => ({
       routeId,
       code: station.code,
       title: station.title,
       longitude: station.longitude,
       latitude: station.latitude,
+      direction: station.direction,
+      esrCode: station.esrCode,
     }))
 }
 
@@ -533,11 +747,74 @@ function PopupCloserOnSidebarClose({ isSidebarOpen }: { isSidebarOpen: boolean }
   return null
 }
 
+function StationSidebarMapClickCloser({
+  onCloseStationSidebar,
+  shouldIgnoreMapClick,
+}: {
+  onCloseStationSidebar: () => void
+  shouldIgnoreMapClick: () => boolean
+}) {
+  useMapEvents({
+    click() {
+      if (shouldIgnoreMapClick()) {
+        return
+      }
+      onCloseStationSidebar()
+    },
+  })
+
+  return null
+}
+
+function ZoomToSelectedStation({
+  station,
+  routeDataById,
+}: {
+  station: RouteStation | null
+  routeDataById: RouteDataById
+}) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!station) {
+      return
+    }
+
+    const snapped = snapToRoute(
+      [station.longitude, station.latitude],
+      routeDataById[station.routeId] ?? null,
+    )
+    const [longitude, latitude] = snapped.point
+    const targetZoom = Math.max(map.getZoom(), 13)
+
+    map.flyTo([latitude, longitude], targetZoom, {
+      animate: true,
+      duration: 0.45,
+    })
+  }, [map, routeDataById, station])
+
+  return null
+}
+
 export function MapExample() {
   const [currentZoom, setCurrentZoom] = useState(10)
   const [clockTimestamp, setClockTimestamp] = useState(() => getNow("real").getTime())
+  const [currentStation, setCurrentStation] = useState<RouteStation | null>(null)
+  const [stationPhotos, setStationPhotos] = useState<StationPhotoItem[]>([])
+  const [isPhotosLoading, setIsPhotosLoading] = useState(false)
+  const stationClickLockUntilRef = useRef(0)
   const showPermanentStationLabels = currentZoom >= STATION_LABEL_ZOOM_THRESHOLD
   const trainIconSize = trainIconSizeByZoom(currentZoom)
+  const stationMarkerRadius = stationMarkerRadiusByZoom(currentZoom)
+  const closeStationSidebar = useCallback(() => {
+    setCurrentStation(null)
+    setStationPhotos([])
+    setIsPhotosLoading(false)
+  }, [])
+
+  const shouldIgnoreMapClick = useCallback(() => {
+    return Date.now() < stationClickLockUntilRef.current
+  }, [])
 
   const { currentTrain, setCurrentTrain } = useCurrentTrainStore()
   const {
@@ -653,6 +930,46 @@ export function MapExample() {
     [routeStationsById],
   )
 
+  const stationSchedule = useMemo<StationScheduleItem[]>(() => {
+    if (!currentStation) {
+      return []
+    }
+
+    return buildStationSchedule(currentStation, clockTimestamp, hydratedSegments)
+  }, [clockTimestamp, currentStation, hydratedSegments])
+
+  const upcomingStationTrainUids = useMemo(() => {
+    if (!currentStation) {
+      return []
+    }
+
+    const windowEnd = clockTimestamp + STATION_SCHEDULE_WINDOW_MS
+    const uids = new Set<string>()
+
+    for (const segment of segments) {
+      const uid = segment.thread?.uid
+      if (!uid) {
+        continue
+      }
+
+      if (segment.mcd_route_id && segment.mcd_route_id !== currentStation.routeId) {
+        continue
+      }
+
+      const departureTimestamp = toTimestamp(segment.departure)
+      const arrivalTimestamp = toTimestamp(segment.arrival)
+      if (departureTimestamp === null || arrivalTimestamp === null) {
+        continue
+      }
+
+      if (arrivalTimestamp >= clockTimestamp && departureTimestamp <= windowEnd) {
+        uids.add(uid)
+      }
+    }
+
+    return Array.from(uids)
+  }, [clockTimestamp, currentStation, segments])
+
   useEffect(() => {
     void fetchForToday()
   }, [fetchForToday])
@@ -672,6 +989,71 @@ export function MapExample() {
       clearInterval(interval)
     }
   }, [activeTrainUids, fetchThreadsForUids])
+
+  useEffect(() => {
+    if (!currentStation || upcomingStationTrainUids.length === 0) {
+      return
+    }
+
+    void fetchThreadsForUids(upcomingStationTrainUids)
+  }, [currentStation, fetchThreadsForUids, upcomingStationTrainUids])
+
+  useEffect(() => {
+    if (!currentStation?.esrCode) {
+      return
+    }
+
+    const controller = new AbortController()
+
+    void fetch("/api/stations/photos", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        esrCode: currentStation.esrCode,
+      }),
+      signal: controller.signal,
+      cache: "no-store",
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          return { photos: [] as StationPhotoItem[] }
+        }
+
+        const payload = (await response.json().catch(() => null)) as
+          | { photos?: StationPhotoItem[] }
+          | null
+        return {
+          photos: Array.isArray(payload?.photos) ? payload.photos : [],
+        }
+      })
+      .then((result) => {
+        setStationPhotos(result.photos)
+      })
+      .catch((error: unknown) => {
+        const aborted =
+          error instanceof DOMException
+            ? error.name === "AbortError"
+            : typeof error === "object" &&
+              error !== null &&
+              "name" in error &&
+              (error as { name?: unknown }).name === "AbortError"
+
+        if (!aborted) {
+          setStationPhotos([])
+        }
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsPhotosLoading(false)
+        }
+      })
+
+    return () => {
+      controller.abort()
+    }
+  }, [currentStation?.code, currentStation?.esrCode])
 
   useEffect(() => {
     if (!currentTrain?.thread.uid) {
@@ -704,6 +1086,21 @@ export function MapExample() {
       {trainsError ? <p className="text-sm text-destructive">{trainsError}</p> : null}
       {threadsError ? <p className="text-sm text-destructive">{threadsError}</p> : null}
       <TrainSidebar />
+      <StationSidebar
+        station={
+          currentStation
+            ? {
+                title: currentStation.title,
+                direction: currentStation.direction,
+                esrCode: currentStation.esrCode,
+              }
+            : null
+        }
+        schedule={stationSchedule}
+        photos={currentStation?.esrCode ? stationPhotos : []}
+        isPhotosLoading={Boolean(currentStation?.esrCode) && isPhotosLoading}
+        onClose={closeStationSidebar}
+      />
       <MapContainer
         center={moscowCenter}
         zoom={10}
@@ -711,8 +1108,13 @@ export function MapExample() {
         scrollWheelZoom
       >
         <MapControlPositioner />
-        <PopupCloserOnSidebarClose isSidebarOpen={Boolean(currentTrain)} />
+        <PopupCloserOnSidebarClose isSidebarOpen={Boolean(currentTrain || currentStation)} />
+        <StationSidebarMapClickCloser
+          onCloseStationSidebar={closeStationSidebar}
+          shouldIgnoreMapClick={shouldIgnoreMapClick}
+        />
         <MapZoomWatcher onZoomChange={setCurrentZoom} />
+        <ZoomToSelectedStation station={currentStation} routeDataById={routeDataById} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url={`https://{s}.basemaps.cartocdn.com/${tileTheme}_all/{z}/{x}/{y}{r}.png`}
@@ -762,12 +1164,22 @@ export function MapExample() {
               const [lon, lat] = snapped.point
               return [lat, lon] as [number, number]
             })()}
-            radius={3}
+            radius={stationMarkerRadius}
             pathOptions={{
               color: station.color,
               fillColor: station.color,
               fillOpacity: 1,
               weight: 1,
+            }}
+            bubblingMouseEvents={false}
+            eventHandlers={{
+              click: () => {
+                stationClickLockUntilRef.current = Date.now() + 350
+                setCurrentTrain(null)
+                setCurrentStation(station)
+                setStationPhotos([])
+                setIsPhotosLoading(Boolean(station.esrCode))
+              },
             }}
           >
             <Tooltip
@@ -804,7 +1216,10 @@ export function MapExample() {
               key={train.thread.uid}
               zIndexOffset={isSelected ? 1000 : 0}
               eventHandlers={{
-                click: () => setCurrentTrain(train),
+                click: () => {
+                  closeStationSidebar()
+                  setCurrentTrain(train)
+                },
                 popupclose: () => setCurrentTrain(null),
               }}
             >

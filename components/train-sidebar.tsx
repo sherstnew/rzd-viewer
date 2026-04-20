@@ -7,7 +7,7 @@ import { getNow } from "@/lib/runtime-mode";
 import { useTrainsStore } from "@/stores/trainsStore";
 import { formatDurationToRu } from "@/lib/utils";
 import { useCurrentTrainStore } from "@/stores/currentTrainStore";
-import { StepBack } from "lucide-react";
+import { X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 type Nullable<T> = T | null;
@@ -540,15 +540,6 @@ export function TrainSidebar() {
 
     return (
         <>
-            {currentTrain ? (
-                <button
-                    className="absolute top-4 left-1/4 z-1200 ml-4 rounded-full bg-card p-2"
-                    onClick={() => setCurrentTrain(null)}
-                    type="button"
-                >
-                    <StepBack className="size-6 cursor-pointer" />
-                </button>
-            ) : null}
             <div
                 className={`absolute top-0 left-0 z-1200 h-full bg-card ${
                     currentTrain
@@ -556,6 +547,14 @@ export function TrainSidebar() {
                         : "pointer-events-none -translate-x-full"
                 } flex w-full flex-col overflow-y-auto p-5 transition lg:w-1/4`}
             >
+                <button
+                    className="absolute top-3 right-3 z-30 flex size-9 items-center justify-center rounded-full bg-card/95 shadow-md"
+                    onClick={() => setCurrentTrain(null)}
+                    type="button"
+                    aria-label="Закрыть train sidebar"
+                >
+                    <X className="size-4" />
+                </button>
                 {isVideoStationLeft ? (
                     <video
                         src="/assets/pov.mp4"

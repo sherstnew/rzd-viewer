@@ -15,7 +15,7 @@ export function getTodayDateKey() {
     year: "numeric",
     month: "2-digit",
     day: "2-digit",
-  }).format(new Date())
+  }).format(getDate())
 }
 
 export function formatDurationToRu(ms: number): string {
