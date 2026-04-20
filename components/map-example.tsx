@@ -75,6 +75,7 @@ type NearestProjection = {
   point: LonLat
   distanceSq: number
   segmentIndex: number
+  t: number
   segmentStart: LonLat
   segmentEnd: LonLat
   headingDeg: number
@@ -277,6 +278,10 @@ function nearestCoordinateIndex(target: LonLat, coordinates: LonLat[]): number {
   return bestIndex
 }
 
+function coordinateIndexValueFromProjection(projection: NearestProjection): number {
+  return projection.segmentIndex + projection.t
+}
+
 function buildVideoSectionRoute(routeData: RouteGeoJson | null): RouteGeoJson | null {
   if (!routeData || routeData.features.length === 0) {
     return null
@@ -362,12 +367,20 @@ function findNearestProjection(point: LonLat, routeData: RouteGeoJson | null): N
   let bestProjection: LonLat = point
   let bestDistanceSq = Number.POSITIVE_INFINITY
   let bestSegmentIndex = 0
+  let bestSegmentT = 0
   let bestStart: LonLat = point
   let bestEnd: LonLat = point
 
   for (let i = 0; i < coordinates.length - 1; i += 1) {
     const a: LonLat = [coordinates[i][0], coordinates[i][1]]
     const b: LonLat = [coordinates[i + 1][0], coordinates[i + 1][1]]
+    const abx = b[0] - a[0]
+    const aby = b[1] - a[1]
+    const abLenSq = abx * abx + aby * aby
+    const apx = point[0] - a[0]
+    const apy = point[1] - a[1]
+    const rawT = abLenSq === 0 ? 0 : (apx * abx + apy * aby) / abLenSq
+    const t = Math.max(0, Math.min(1, rawT))
     const projected = projectPointToSegment(point, a, b)
     const d = distanceSq(point, projected)
 
@@ -375,6 +388,7 @@ function findNearestProjection(point: LonLat, routeData: RouteGeoJson | null): N
       bestDistanceSq = d
       bestProjection = projected
       bestSegmentIndex = i
+      bestSegmentT = t
       bestStart = a
       bestEnd = b
     }
@@ -384,6 +398,7 @@ function findNearestProjection(point: LonLat, routeData: RouteGeoJson | null): N
     point: bestProjection,
     distanceSq: bestDistanceSq,
     segmentIndex: bestSegmentIndex,
+    t: bestSegmentT,
     segmentStart: bestStart,
     segmentEnd: bestEnd,
     headingDeg: headingFromSegment(bestStart, bestEnd),
@@ -766,8 +781,34 @@ function buildTrainRouteProgressOverlay(
 
   const fallbackEndIndex = Math.min(routeCoordinates.length - 1, startRouteIndex + 1)
   const safeEndRouteIndex = endRouteIndex ?? fallbackEndIndex
-  const splitIndex =
+  const fallbackSplitIndex =
     startRouteIndex + (safeEndRouteIndex - startRouteIndex) * progress.ratioWithinLeg
+  const projectedSplitIndex = (() => {
+    const positionedTrain = train as Partial<TrainWithCoordinates>
+    if (
+      typeof positionedTrain.longitude !== "number" ||
+      !Number.isFinite(positionedTrain.longitude) ||
+      typeof positionedTrain.latitude !== "number" ||
+      !Number.isFinite(positionedTrain.latitude)
+    ) {
+      return null
+    }
+
+    const nearestProjection = findNearestProjection(
+      [positionedTrain.longitude, positionedTrain.latitude],
+      routeData,
+    )
+    if (!nearestProjection) {
+      return null
+    }
+
+    const rawIndexValue = coordinateIndexValueFromProjection(nearestProjection)
+    const minLegIndex = Math.min(startRouteIndex, safeEndRouteIndex)
+    const maxLegIndex = Math.max(startRouteIndex, safeEndRouteIndex)
+
+    return Math.min(maxLegIndex, Math.max(minLegIndex, rawIndexValue))
+  })()
+  const splitIndex = projectedSplitIndex ?? fallbackSplitIndex
 
   const maxRouteIndex = routeCoordinates.length - 1
   const isForwardDirection = safeEndRouteIndex >= startRouteIndex

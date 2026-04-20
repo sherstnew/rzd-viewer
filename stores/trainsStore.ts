@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import localTrainsWithThreads from "@/jsons/trains-with-threads.json"
+import localTrainsData from "@/jsons/local-trains.json"
 import type { Train, TrainThreadPayload } from "@/lib/trains"
 import { ClockMode, getDateKey, isDevMode } from "@/lib/runtime-mode"
 import { create } from "zustand"
@@ -158,7 +158,7 @@ function buildSafeLocalStorage(): Storage {
 }
 
 function readLocalTrains(dayKey: string): Train[] {
-  const segments = extractSegments(localTrainsWithThreads)
+  const segments = extractSegments(localTrainsData)
   if (!segments) {
     return []
   }
@@ -393,13 +393,23 @@ export const useTrainsStore = create<TrainsStoreState>()(
     }),
     {
       name: "mcd-trains-cache-v2",
+      version: 3,
       storage: createJSONStorage(buildSafeLocalStorage),
       partialize: (state) => ({
-        segments: state.segments,
         cacheDate: state.cacheDate,
         clockMode: state.clockMode,
         dataSource: state.dataSource,
       }),
+      migrate: (persistedState) => {
+        if (!persistedState || typeof persistedState !== "object") {
+          return persistedState as TrainsStoreState
+        }
+
+        const nextState = { ...(persistedState as Record<string, unknown>) }
+        delete nextState.segments
+
+        return nextState as TrainsStoreState
+      },
     },
   ),
 )
