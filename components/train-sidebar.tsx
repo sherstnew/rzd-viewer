@@ -3,6 +3,7 @@
     getPovSyncState,
     POV_VIDEO_ANCHORS,
 } from "@/lib/pov-sync";
+import { resolveTrainProgressByStops } from "@/lib/train-progress";
 import { getNow } from "@/lib/runtime-mode";
 import { useTrainsStore } from "@/stores/trainsStore";
 import { formatDurationToRu } from "@/lib/utils";
@@ -151,55 +152,7 @@ export function TrainSidebar() {
         Boolean(povSyncState);
 
     const lastStopIndex = Math.max(0, routeStops.length - 1);
-    let currentSegment = {
-        startIndex: 0,
-        endIndex: Math.min(1, lastStopIndex),
-    };
-
-    for (let i = 0; i < routeStops.length; i += 1) {
-        const stop = routeStops[i];
-        const stationArrival = toTimestamp(stop.arrival);
-        const stationDeparture = toTimestamp(stop.departure);
-
-        if (
-            stationArrival !== null &&
-            stationDeparture !== null &&
-            stationArrival <= nowTimestamp &&
-            nowTimestamp <= stationDeparture
-        ) {
-            currentSegment = {
-                startIndex: i,
-                endIndex: Math.min(i + 1, lastStopIndex),
-            };
-            break;
-        }
-    }
-
-    if (
-        currentSegment.startIndex === 0 &&
-        currentSegment.endIndex === Math.min(1, lastStopIndex)
-    ) {
-        for (let i = 0; i < routeStops.length - 1; i += 1) {
-            const start = routeStops[i];
-            const end = routeStops[i + 1];
-            const startTime =
-                toTimestamp(start.departure) ?? toTimestamp(start.arrival);
-            const endTime =
-                toTimestamp(end.arrival) ?? toTimestamp(end.departure);
-
-            if (startTime === null || endTime === null) {
-                continue;
-            }
-
-            if (startTime <= nowTimestamp && nowTimestamp <= endTime) {
-                currentSegment = {
-                    startIndex: i,
-                    endIndex: i + 1,
-                };
-                break;
-            }
-        }
-    }
+    const currentSegment = resolveTrainProgressByStops(nowTimestamp, routeStops);
 
     const runtimeStatusText = (() => {
         const STATUS_EDGE_WINDOW_CAP_MS = 30_000;
@@ -629,3 +582,7 @@ export function TrainSidebar() {
         </>
     );
 }
+
+
+
+

@@ -16,6 +16,7 @@ import {
 } from "react-leaflet"
 import { useTheme } from "next-themes"
 import { createRouteEngine } from "@/lib/route-engine"
+import { resolveTrainProgressByStops } from "@/lib/train-progress"
 import { findTrains, Train, TrainWithCoordinates } from "@/lib/trains"
 import stationsData from "@/jsons/stations.json"
 import moscowBigGeoJson from "@/jsons/moscow-big.json"
@@ -81,6 +82,11 @@ type NearestProjection = {
 
 type RouteDataById = Partial<Record<RouteId, RouteGeoJson>>
 type RouteStationsById = Record<RouteId, RouteStation[]>
+type RouteProgressOverlay = {
+  routeId: RouteId
+  passedRoute: RouteGeoJson | null
+  upcomingRoute: RouteGeoJson | null
+}
 
 const TRAIN_ICON_SIZE_PX = 30
 const TRAIN_ICON_MIN_SIZE_PX = 20
@@ -583,6 +589,10 @@ function trainIconSrc(train: TrainWithCoordinates): string {
   return "/leaflet/standart.svg"
 }
 
+function trainInstanceKey(train: Pick<Train, "thread" | "departure" | "arrival">): string {
+  return `${train.thread.uid}__${train.departure}__${train.arrival}`
+}
+
 function snapToRoute(point: LonLat, routeData: RouteGeoJson | null): SnappedPoint {
   const nearest = findNearestProjection(point, routeData)
   if (!nearest) {
@@ -623,6 +633,156 @@ function resolveTrainHeading(train: TrainWithCoordinates, snapped: SnappedPoint)
   }
 
   return snapped.headingDeg
+}
+
+function interpolateCoordinate(a: LonLat, b: LonLat, ratio: number): LonLat {
+  return [a[0] + (b[0] - a[0]) * ratio, a[1] + (b[1] - a[1]) * ratio]
+}
+
+function coordinatesEqual(a: LonLat, b: LonLat): boolean {
+  const epsilon = 1e-9
+  return Math.abs(a[0] - b[0]) < epsilon && Math.abs(a[1] - b[1]) < epsilon
+}
+
+function pointAtRouteIndex(routeCoordinates: LonLat[], indexValue: number): LonLat {
+  const maxIndex = routeCoordinates.length - 1
+  const clampedIndex = Math.min(maxIndex, Math.max(0, indexValue))
+  const lower = Math.floor(clampedIndex)
+  const upper = Math.ceil(clampedIndex)
+
+  if (lower === upper) {
+    return routeCoordinates[lower]
+  }
+
+  const ratio = clampedIndex - lower
+  return interpolateCoordinate(routeCoordinates[lower], routeCoordinates[upper], ratio)
+}
+
+function buildRouteSlice(
+  routeCoordinates: LonLat[],
+  startIndexValue: number,
+  endIndexValue: number,
+): LonLat[] {
+  if (routeCoordinates.length < 2 || endIndexValue < startIndexValue) {
+    return []
+  }
+
+  const maxIndex = routeCoordinates.length - 1
+  const safeStart = Math.min(maxIndex, Math.max(0, startIndexValue))
+  const safeEnd = Math.min(maxIndex, Math.max(0, endIndexValue))
+  if (safeEnd < safeStart) {
+    return []
+  }
+
+  const coordinates: LonLat[] = [pointAtRouteIndex(routeCoordinates, safeStart)]
+  const integerStart = Math.floor(safeStart) + 1
+  const integerEnd = Math.floor(safeEnd)
+
+  for (let i = integerStart; i <= integerEnd; i += 1) {
+    if (i >= 0 && i <= maxIndex) {
+      const nextPoint = routeCoordinates[i]
+      if (!coordinatesEqual(coordinates[coordinates.length - 1], nextPoint)) {
+        coordinates.push(nextPoint)
+      }
+    }
+  }
+
+  const endPoint = pointAtRouteIndex(routeCoordinates, safeEnd)
+  if (!coordinatesEqual(coordinates[coordinates.length - 1], endPoint)) {
+    coordinates.push(endPoint)
+  }
+
+  return coordinates
+}
+
+function buildOverlayRoute(name: string, coordinates: LonLat[]): RouteGeoJson | null {
+  if (coordinates.length < 2) {
+    return null
+  }
+
+  return {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: { name },
+        geometry: {
+          type: "LineString",
+          coordinates,
+        },
+      },
+    ],
+  }
+}
+
+function buildTrainRouteProgressOverlay(
+  train: Train | null,
+  routeDataById: RouteDataById,
+  nowTimestamp: number,
+): RouteProgressOverlay | null {
+  if (!train) {
+    return null
+  }
+
+  const routeId = train.mcd_route_id ?? "mcd2"
+  const routeData = routeDataById[routeId] ?? null
+  const routeCoordinates = routeData?.features[0]?.geometry.coordinates as LonLat[] | undefined
+  if (!routeData || !routeCoordinates || routeCoordinates.length < 2) {
+    return null
+  }
+
+  const routeStops = train.thread_route?.stops ?? []
+  if (routeStops.length < 2) {
+    return null
+  }
+
+  const progress = resolveTrainProgressByStops(nowTimestamp, routeStops)
+  if (progress.mode === "unknown") {
+    return null
+  }
+
+  const stopRouteIndexes = routeStops.map((stop) => {
+    const stationCoordinates = stationCoordinatesByCode.get(stop.station.code)
+    if (!stationCoordinates) {
+      return null
+    }
+
+    const nearest = findNearestProjection(
+      [stationCoordinates.longitude, stationCoordinates.latitude],
+      routeData,
+    )
+    if (!nearest) {
+      return null
+    }
+
+    return nearestCoordinateIndex(nearest.point, routeCoordinates)
+  })
+
+  const startRouteIndex = stopRouteIndexes[progress.startIndex]
+  const endRouteIndex = stopRouteIndexes[progress.endIndex]
+  if (startRouteIndex === null || startRouteIndex === undefined) {
+    return null
+  }
+
+  const fallbackEndIndex = Math.min(routeCoordinates.length - 1, startRouteIndex + 1)
+  const safeEndRouteIndex = endRouteIndex ?? fallbackEndIndex
+  const splitIndex =
+    startRouteIndex + (safeEndRouteIndex - startRouteIndex) * progress.ratioWithinLeg
+
+  const maxRouteIndex = routeCoordinates.length - 1
+  const isForwardDirection = safeEndRouteIndex >= startRouteIndex
+  const passedSlice = isForwardDirection
+    ? buildRouteSlice(routeCoordinates, 0, splitIndex)
+    : buildRouteSlice(routeCoordinates, splitIndex, maxRouteIndex)
+  const upcomingSlice = isForwardDirection
+    ? buildRouteSlice(routeCoordinates, splitIndex, maxRouteIndex)
+    : buildRouteSlice(routeCoordinates, 0, splitIndex)
+
+  return {
+    routeId,
+    passedRoute: buildOverlayRoute("passed-progress", passedSlice),
+    upcomingRoute: buildOverlayRoute("upcoming-progress", upcomingSlice),
+  }
 }
 
 function buildAutoStationsForRoute(routeId: RouteId, routeData: RouteGeoJson | null): RouteStation[] {
@@ -910,6 +1070,13 @@ export function MapExample() {
     [routeDataById],
   )
 
+  const currentTrainKey = currentTrain ? trainInstanceKey(currentTrain) : null
+
+  const selectedTrainRouteOverlay = useMemo(
+    () => buildTrainRouteProgressOverlay(currentTrain, routeDataById, clockTimestamp),
+    [clockTimestamp, currentTrain, routeDataById],
+  )
+
   const routeStationsById = useMemo((): RouteStationsById => {
     return {
       mcd1: buildAutoStationsForRoute("mcd1", routeDataById.mcd1 ?? null),
@@ -1056,11 +1223,11 @@ export function MapExample() {
   }, [currentStation?.code, currentStation?.esrCode])
 
   useEffect(() => {
-    if (!currentTrain?.thread.uid) {
+    if (!currentTrain || !currentTrainKey) {
       return
     }
 
-    const updated = trains.find((train) => train.thread.uid === currentTrain.thread.uid)
+    const updated = trains.find((train) => trainInstanceKey(train) === currentTrainKey)
     if (!updated) {
       return
     }
@@ -1068,7 +1235,7 @@ export function MapExample() {
     if (!currentTrain.thread_route && (updated.thread_route || updated.thread_error)) {
       setCurrentTrain(updated)
     }
-  }, [currentTrain, trains, setCurrentTrain])
+  }, [currentTrain, currentTrainKey, trains, setCurrentTrain])
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -1126,8 +1293,12 @@ export function MapExample() {
               if (!route) {
                 return null
               }
+              const isSelectedRoute = selectedTrainRouteOverlay?.routeId === routeDefinition.id
+              const upcomingRoute = isSelectedRoute ? selectedTrainRouteOverlay?.upcomingRoute : null
+              const passedRoute = isSelectedRoute ? selectedTrainRouteOverlay?.passedRoute : null
+              const overlayKeySuffix = currentTrainKey ?? "no-train"
 
-              return (
+              return [
                 <GeoJSON
                   key={routeDefinition.id}
                   data={route}
@@ -1136,8 +1307,33 @@ export function MapExample() {
                     opacity: 1,
                     color: routeDefinition.color,
                   }}
-                />
-              )
+                />,
+                upcomingRoute ? (
+                  <GeoJSON
+                    key={`${routeDefinition.id}-upcoming-progress-${overlayKeySuffix}`}
+                    data={upcomingRoute}
+                    style={{
+                      color: "#fff",
+                      weight: 3,
+                      opacity: 0.95,
+                      dashArray: "10 10",
+                      lineCap: "round",
+                    }}
+                  />
+                ) : null,
+                passedRoute ? (
+                  <GeoJSON
+                    key={`${routeDefinition.id}-passed-progress-${overlayKeySuffix}`}
+                    data={passedRoute}
+                    style={{
+                      color: routeDefinition.color,
+                      weight: 8,
+                      opacity: 1,
+                      lineCap: "round",
+                    }}
+                  />
+                ) : null,
+              ]
             })}
             {videoSectionRouteData ? (
               <GeoJSON
@@ -1195,12 +1391,13 @@ export function MapExample() {
         ))}
 
         {trains.map((train) => {
+          const trainKey = trainInstanceKey(train)
           const routeId = train.mcd_route_id ?? "mcd2"
           const routeData = routeDataById[routeId] ?? null
           const snapped = snapToRoute([train.longitude, train.latitude], routeData)
           const [lon, lat] = snapped.point
           const heading = resolveTrainHeading(train, snapped)
-          const isSelected = currentTrain?.thread.uid === train.thread.uid
+          const isSelected = currentTrainKey === trainKey
           const selectedColor = ROUTE_COLOR_BY_ID[routeId]
 
           return (
@@ -1213,7 +1410,7 @@ export function MapExample() {
                 isSelected,
                 selectedColor,
               )}
-              key={train.thread.uid}
+              key={trainKey}
               zIndexOffset={isSelected ? 1000 : 0}
               eventHandlers={{
                 click: () => {
