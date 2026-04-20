@@ -1,5 +1,4 @@
-﻿import rawTrainsData from "@/jsons/trains-with-threads.json"
-import stationsData from "@/jsons/stations.json"
+﻿import stationsData from "@/jsons/stations.json"
 
 type Nullable<T> = T | null
 
@@ -81,7 +80,11 @@ export interface Train {
   departure: string
   arrival: string
   start_date: string
-  thread_route: Thread
+  thread_route: Nullable<Thread>
+  thread_error?: Nullable<{
+    status_code: Nullable<number>
+    message: string
+  }>
 }
 
 type TrainsData = Train[]
@@ -98,8 +101,6 @@ export type TrainWithCoordinates = Train & {
   departure_station: TrainRoutePoint
   arrival_station: TrainRoutePoint
 }
-
-const trainsData: TrainsData = rawTrainsData as TrainsData
 
 type StationCoordinates = {
   longitude: number
@@ -140,7 +141,7 @@ const stationCoordinatesByCode = new Map<string, StationCoordinates>(
     : [],
 )
 
-export function findTrains(time: Date): TrainWithCoordinates[] {
+export function findTrains(time: Date, trainsData: TrainsData): TrainWithCoordinates[] {
   const currentTimeMs = time.getTime()
 
   function toTimeMs(value: Nullable<string>): number | null {
@@ -162,11 +163,11 @@ export function findTrains(time: Date): TrainWithCoordinates[] {
   const trains = trainsData.filter(
     (train) =>
       new Date(train.departure).getTime() <= currentTimeMs &&
-      currentTimeMs <= new Date(train.arrival).getTime()
+      currentTimeMs <= new Date(train.arrival).getTime(),
   )
 
   return trains.flatMap((train): TrainWithCoordinates[] => {
-    const stops = train.thread_route.stops ?? []
+    const stops = train.thread_route?.stops ?? []
 
     // If the train is currently dwelling at a station (arrival..departure),
     // keep it visible at that station coordinates.

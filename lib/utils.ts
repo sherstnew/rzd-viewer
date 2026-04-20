@@ -6,16 +6,16 @@ export function cn(...inputs: ClassValue[]) {
 }
 
 export function getDate() {
-  const now = new Date()
-  return new Date(
-    2026,
-    3,
-    18,
-    now.getHours(),
-    now.getMinutes(),
-    now.getSeconds(),
-    now.getMilliseconds()
-  )
+  return new Date()
+}
+
+export function getTodayDateKey() {
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Europe/Moscow",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(new Date())
 }
 
 export function formatDurationToRu(ms: number): string {
