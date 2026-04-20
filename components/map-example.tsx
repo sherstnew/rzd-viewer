@@ -18,9 +18,10 @@ import { useTheme } from "next-themes"
 import { createRouteEngine } from "@/lib/route-engine"
 import { findTrains, Train, TrainWithCoordinates } from "@/lib/trains"
 import stationsData from "@/jsons/stations.json"
+import moscowBigGeoJson from "@/jsons/moscow-big.json"
+import { getNow } from "@/lib/runtime-mode"
 import { TrainSidebar } from "./train-sidebar"
 import { useCurrentTrainStore } from "@/stores/currentTrainStore"
-import { getDate } from "@/lib/utils"
 import { useTrainsStore } from "@/stores/trainsStore"
 
 const moscowCenter: [number, number] = [55.7558, 37.6173]
@@ -117,6 +118,11 @@ const FORWARD_TERMINAL_BY_ROUTE: Record<RouteId, string> = {
   mcd1: LOBNYA_STATION_CODE,
   mcd2: PODOLSK_STATION_CODE,
   mcd3: IPPODROM_STATION_CODE,
+}
+const ROUTE_COLOR_BY_ID: Record<RouteId, string> = {
+  mcd1: MCD1_ROUTE_COLOR,
+  mcd2: MCD2_ROUTE_COLOR,
+  mcd3: MCD3_ROUTE_COLOR,
 }
 
 function parseCoordinate(value: unknown): number | null {
@@ -336,14 +342,23 @@ function findNearestProjection(point: LonLat, routeData: RouteGeoJson | null): N
   }
 }
 
-function createTrainIcon(iconSrc: string, headingDeg: number, sizePx: number): L.DivIcon {
+function createTrainIconWithSelection(
+  iconSrc: string,
+  headingDeg: number,
+  sizePx: number,
+  isSelected: boolean,
+  selectedColor: string,
+): L.DivIcon {
   const correctedHeading = (headingDeg + 180) % 360
+  const shadow = isSelected
+    ? `filter:drop-shadow(0 0 3px ${selectedColor}) drop-shadow(0 0 8px ${selectedColor});`
+    : ""
 
   return L.divIcon({
     className: "train-marker-wrapper",
     iconSize: [sizePx, sizePx],
     iconAnchor: [sizePx / 2, sizePx / 2],
-    html: `<img src="${iconSrc}" alt="Train" style="width:${sizePx}px;height:${sizePx}px;transform:rotate(${correctedHeading}deg);transform-origin:center center;object-fit:contain;" />`,
+    html: `<img src="${iconSrc}" alt="Train" style="width:${sizePx}px;height:${sizePx}px;transform:rotate(${correctedHeading}deg);transform-origin:center center;object-fit:contain;${shadow}" />`,
   })
 }
 
@@ -356,11 +371,11 @@ function trainIconSizeByZoom(zoom: number): number {
 function trainIconSrc(train: TrainWithCoordinates): string {
   const subtypeTitle = train.thread.transport_subtype?.title?.toLowerCase() ?? ""
 
-  if (subtypeTitle.includes("иволга")) {
+  if (subtypeTitle.includes("иволга") || subtypeTitle.includes("ivolga")) {
     return "/leaflet/ivolga.svg"
   }
 
-  if (subtypeTitle.includes("стандарт плюс")) {
+  if (subtypeTitle.includes("стандарт плюс") || subtypeTitle.includes("standard plus")) {
     return "/leaflet/standart.svg"
   }
 
@@ -506,11 +521,21 @@ function MapControlPositioner() {
   return null
 }
 
+function PopupCloserOnSidebarClose({ isSidebarOpen }: { isSidebarOpen: boolean }) {
+  const map = useMap()
+
+  useEffect(() => {
+    if (!isSidebarOpen) {
+      map.closePopup()
+    }
+  }, [isSidebarOpen, map])
+
+  return null
+}
+
 export function MapExample() {
-  const [routeDataById, setRouteDataById] = useState<RouteDataById>({})
-  const [routeError, setRouteError] = useState<string | null>(null)
   const [currentZoom, setCurrentZoom] = useState(10)
-  const [clockTimestamp, setClockTimestamp] = useState(() => getDate().getTime())
+  const [clockTimestamp, setClockTimestamp] = useState(() => getNow("real").getTime())
   const showPermanentStationLabels = currentZoom >= STATION_LABEL_ZOOM_THRESHOLD
   const trainIconSize = trainIconSizeByZoom(currentZoom)
 
@@ -518,11 +543,32 @@ export function MapExample() {
   const {
     segments,
     threadsByUid,
+    clockMode,
     fetchForToday,
     fetchThreadsForUids,
     error: trainsError,
     threadsError,
   } = useTrainsStore()
+
+  const { routeDataById, routeError } = useMemo(() => {
+    try {
+      const routeEngine = createRouteEngine(moscowBigGeoJson as GeoJsonObject)
+      const nextRoutes: RouteDataById = {}
+
+      for (const routeDefinition of ROUTE_DEFINITIONS) {
+        nextRoutes[routeDefinition.id] = routeEngine.findRoute(
+          routeDefinition.start,
+          routeDefinition.end,
+        )
+      }
+
+      return { routeDataById: nextRoutes, routeError: null as string | null }
+    } catch (calculationError) {
+      const message =
+        calculationError instanceof Error ? calculationError.message : "Не удалось построить маршрут"
+      return { routeDataById: {}, routeError: message }
+    }
+  }, [])
 
   const hydratedSegments = useMemo<Train[]>(() => {
     return segments.map((segment) => {
@@ -608,48 +654,7 @@ export function MapExample() {
   )
 
   useEffect(() => {
-    let isMounted = true
-
-    async function loadNetwork() {
-      const response = await fetch("/assets/moscow-big.geojson")
-      if (!response.ok) {
-        if (isMounted) {
-          setRouteError("Не удалось загрузить железнодорожную сеть")
-        }
-        return
-      }
-
-      const data = (await response.json()) as GeoJsonObject
-      if (isMounted) {
-        try {
-          const routeEngine = createRouteEngine(data)
-          const nextRoutes: RouteDataById = {}
-
-          for (const routeDefinition of ROUTE_DEFINITIONS) {
-            nextRoutes[routeDefinition.id] = routeEngine.findRoute(
-              routeDefinition.start,
-              routeDefinition.end,
-            )
-          }
-
-          setRouteDataById(nextRoutes)
-          setRouteError(null)
-        } catch (calculationError) {
-          const message =
-            calculationError instanceof Error
-              ? calculationError.message
-              : "Не удалось построить маршрут"
-          setRouteError(message)
-        }
-      }
-    }
-
-    void loadNetwork()
     void fetchForToday()
-
-    return () => {
-      isMounted = false
-    }
   }, [fetchForToday])
 
   useEffect(() => {
@@ -685,13 +690,13 @@ export function MapExample() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setClockTimestamp(getDate().getTime())
+      setClockTimestamp(getNow(clockMode).getTime())
     }, 500)
 
     return () => {
       clearInterval(interval)
     }
-  }, [])
+  }, [clockMode])
 
   return (
     <div className="relative h-full space-y-4">
@@ -706,6 +711,7 @@ export function MapExample() {
         scrollWheelZoom
       >
         <MapControlPositioner />
+        <PopupCloserOnSidebarClose isSidebarOpen={Boolean(currentTrain)} />
         <MapZoomWatcher onZoomChange={setCurrentZoom} />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
@@ -782,12 +788,21 @@ export function MapExample() {
           const snapped = snapToRoute([train.longitude, train.latitude], routeData)
           const [lon, lat] = snapped.point
           const heading = resolveTrainHeading(train, snapped)
+          const isSelected = currentTrain?.thread.uid === train.thread.uid
+          const selectedColor = ROUTE_COLOR_BY_ID[routeId]
 
           return (
             <Marker
               position={[lat, lon]}
-              icon={createTrainIcon(trainIconSrc(train), heading, trainIconSize)}
+              icon={createTrainIconWithSelection(
+                trainIconSrc(train),
+                heading,
+                trainIconSize,
+                isSelected,
+                selectedColor,
+              )}
               key={train.thread.uid}
+              zIndexOffset={isSelected ? 1000 : 0}
               eventHandlers={{
                 click: () => setCurrentTrain(train),
                 popupclose: () => setCurrentTrain(null),

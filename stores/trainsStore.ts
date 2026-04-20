@@ -1,15 +1,20 @@
-"use client"
+﻿"use client"
 
+import localTrainsWithThreads from "@/jsons/trains-with-threads.json"
 import type { Train, TrainThreadPayload } from "@/lib/trains"
-import { getTodayDateKey } from "@/lib/utils"
+import { ClockMode, getDateKey, isDevMode } from "@/lib/runtime-mode"
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
+
+type DataSource = "api" | "local-dev" | "local-fallback"
 
 type TrainsStoreState = {
   segments: Train[]
   threadsByUid: Record<string, TrainThreadPayload>
   inFlightUids: Record<string, true>
   cacheDate: string | null
+  clockMode: ClockMode
+  dataSource: DataSource
   isLoading: boolean
   isLoadingThreads: boolean
   error: string | null
@@ -27,7 +32,10 @@ type ThreadsApiPayload = Record<string, TrainThreadPayload>
 type FallbackPayload = {
   segments?: unknown
 }
+
 const THREADS_BATCH_SIZE = 25
+const ISO_DATE_PREFIX_REGEX = /^(\d{4}-\d{2}-\d{2})([ T].*)$/
+const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/
 
 function extractSegments(payload: unknown): Train[] | null {
   if (Array.isArray(payload)) {
@@ -44,6 +52,120 @@ function extractSegments(payload: unknown): Train[] | null {
   return null
 }
 
+function replaceIsoDatePrefix(value: string, dayKey: string): string {
+  const isoMatch = value.match(ISO_DATE_PREFIX_REGEX)
+  if (isoMatch) {
+    return `${dayKey}${isoMatch[2]}`
+  }
+
+  if (DATE_ONLY_REGEX.test(value)) {
+    return dayKey
+  }
+
+  return value
+}
+
+function normalizeSegmentDatesToDay(segment: Train, dayKey: string): Train {
+  const next: Train = {
+    ...segment,
+    departure:
+      typeof segment.departure === "string"
+        ? replaceIsoDatePrefix(segment.departure, dayKey)
+        : segment.departure,
+    arrival:
+      typeof segment.arrival === "string"
+        ? replaceIsoDatePrefix(segment.arrival, dayKey)
+        : segment.arrival,
+    start_date:
+      typeof segment.start_date === "string"
+        ? replaceIsoDatePrefix(segment.start_date, dayKey)
+        : segment.start_date,
+  }
+
+  const stops = segment.thread_route?.stops
+  if (Array.isArray(stops) && segment.thread_route) {
+    next.thread_route = {
+      ...segment.thread_route,
+      stops: stops.map((stop) => ({
+        ...stop,
+        departure:
+          typeof stop.departure === "string"
+            ? replaceIsoDatePrefix(stop.departure, dayKey)
+            : stop.departure,
+        arrival:
+          typeof stop.arrival === "string"
+            ? replaceIsoDatePrefix(stop.arrival, dayKey)
+            : stop.arrival,
+      })),
+    }
+  }
+
+  return next
+}
+
+function normalizeSegmentsToDay(segments: Train[], dayKey: string): Train[] {
+  return segments.map((segment) => normalizeSegmentDatesToDay(segment, dayKey))
+}
+
+function buildSafeLocalStorage(): Storage {
+  return {
+    getItem: (name) => localStorage.getItem(name),
+    removeItem: (name) => localStorage.removeItem(name),
+    setItem: (name, value) => {
+      try {
+        localStorage.setItem(name, value)
+        return
+      } catch (error) {
+        const isQuotaError =
+          error instanceof DOMException &&
+          (error.name === "QuotaExceededError" || error.code === 22)
+        if (!isQuotaError) {
+          throw error
+        }
+      }
+
+      try {
+        const parsed = JSON.parse(value) as {
+          state?: Record<string, unknown>
+          version?: number
+        }
+        if (!parsed.state || typeof parsed.state !== "object") {
+          return
+        }
+
+        const reducedState = {
+          ...parsed.state,
+          segments: [],
+        }
+
+        localStorage.setItem(
+          name,
+          JSON.stringify({
+            ...parsed,
+            state: reducedState,
+          }),
+        )
+      } catch {
+        // Persist is best-effort. If even reduced payload can't be saved, ignore.
+      }
+    },
+    clear: () => localStorage.clear(),
+    key: (index) => localStorage.key(index),
+    get length() {
+      return localStorage.length
+    },
+  }
+}
+
+function readLocalTrains(dayKey: string): Train[] {
+  const segments = extractSegments(localTrainsWithThreads)
+  if (!segments) {
+    return []
+  }
+
+  return normalizeSegmentsToDay(segments, dayKey)
+}
+
 export const useTrainsStore = create<TrainsStoreState>()(
   persist(
     (set, get) => ({
@@ -51,15 +173,19 @@ export const useTrainsStore = create<TrainsStoreState>()(
       threadsByUid: {},
       inFlightUids: {},
       cacheDate: null,
+      clockMode: "real",
+      dataSource: "api",
       isLoading: false,
       isLoadingThreads: false,
       error: null,
       threadsError: null,
       fetchForToday: async () => {
-        const today = getTodayDateKey()
+        const devEnabled = isDevMode()
+        const desiredClockMode: ClockMode = devEnabled ? "fixed-2026-04-18" : "real"
+        const today = getDateKey(desiredClockMode)
         const state = get()
 
-        if (state.cacheDate === today && state.segments.length > 0) {
+        if (state.cacheDate === today && state.segments.length > 0 && state.clockMode === desiredClockMode) {
           if (state.error) {
             set({ error: null })
           }
@@ -70,7 +196,22 @@ export const useTrainsStore = create<TrainsStoreState>()(
           return
         }
 
-        set({ isLoading: true, error: null })
+        set({ isLoading: true, error: null, clockMode: desiredClockMode })
+
+        if (devEnabled) {
+          const localSegments = readLocalTrains(today)
+          set({
+            segments: localSegments,
+            threadsByUid: {},
+            inFlightUids: {},
+            cacheDate: today,
+            dataSource: "local-dev",
+            isLoading: false,
+            error: null,
+            threadsError: null,
+          })
+          return
+        }
 
         try {
           const response = await fetch("/api/trains", { cache: "no-store" })
@@ -95,46 +236,45 @@ export const useTrainsStore = create<TrainsStoreState>()(
             threadsByUid: {},
             inFlightUids: {},
             cacheDate: today,
+            clockMode: "real",
+            dataSource: "api",
             isLoading: false,
             error: null,
             threadsError: null,
           })
         } catch (error) {
           const message = error instanceof Error ? error.message : "Failed to load train data"
-          try {
-            const fallbackResponse = await fetch("/assets/trains-fallback.json", { cache: "no-store" })
-            if (!fallbackResponse.ok) {
-              throw new Error(`Fallback request failed with status ${fallbackResponse.status}`)
-            }
+          const fallbackDate = getDateKey("fixed-2026-04-18")
+          const localSegments = readLocalTrains(fallbackDate)
 
-            const fallbackPayload = (await fallbackResponse.json()) as unknown
-            const fallbackSegments = extractSegments(fallbackPayload)
-            if (!fallbackSegments) {
-              throw new Error("Invalid fallback payload: expected train segments array")
-            }
-
+          if (localSegments.length > 0) {
             set({
-              segments: fallbackSegments,
+              segments: localSegments,
               threadsByUid: {},
               inFlightUids: {},
-              cacheDate: today,
+              cacheDate: fallbackDate,
+              clockMode: "fixed-2026-04-18",
+              dataSource: "local-fallback",
               isLoading: false,
-              error: `API недоступен, показаны поезда из локального кэша: ${message}`,
+              error: `API недоступен, показаны поезда из локального fallback: ${message}`,
+              threadsError: null,
             })
-          } catch (fallbackError) {
-            const fallbackMessage =
-              fallbackError instanceof Error ? fallbackError.message : "Failed to load fallback train data"
-            set({
-              isLoading: false,
-              error: `${message}. Fallback недоступен: ${fallbackMessage}`,
-            })
+            return
           }
+
+          set({
+            isLoading: false,
+            error: `${message}. Локальный fallback недоступен`,
+          })
         }
       },
       fetchThreadsForUids: async (uids: string[]) => {
         const state = get()
-        const today = getTodayDateKey()
+        if (state.dataSource !== "api") {
+          return
+        }
 
+        const today = getDateKey(state.clockMode)
         const pendingUids = Array.from(new Set(uids))
           .map((uid) => uid.trim())
           .filter((uid) => uid.length > 0)
@@ -253,9 +393,12 @@ export const useTrainsStore = create<TrainsStoreState>()(
     }),
     {
       name: "mcd-trains-cache-v2",
-      storage: createJSONStorage(() => localStorage),
+      storage: createJSONStorage(buildSafeLocalStorage),
       partialize: (state) => ({
+        segments: state.segments,
         cacheDate: state.cacheDate,
+        clockMode: state.clockMode,
+        dataSource: state.dataSource,
       }),
     },
   ),

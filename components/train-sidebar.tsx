@@ -3,7 +3,9 @@
     getPovSyncState,
     POV_VIDEO_ANCHORS,
 } from "@/lib/pov-sync";
-import { formatDurationToRu, getDate } from "@/lib/utils";
+import { getNow } from "@/lib/runtime-mode";
+import { useTrainsStore } from "@/stores/trainsStore";
+import { formatDurationToRu } from "@/lib/utils";
 import { useCurrentTrainStore } from "@/stores/currentTrainStore";
 import { StepBack } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -63,20 +65,23 @@ function getStationsWordForm(count: number): "станция" | "станции"
 
 export function TrainSidebar() {
     const { currentTrain, setCurrentTrain } = useCurrentTrainStore();
+    const { clockMode } = useTrainsStore();
     const [expandedByTrain, setExpandedByTrain] = useState<
         Record<string, ExpandState>
     >({});
-    const [nowTimestamp, setNowTimestamp] = useState(() => getDate().getTime());
+    const [nowTimestamp, setNowTimestamp] = useState(() =>
+        getNow("real").getTime()
+    );
 
     useEffect(() => {
         const id = window.setInterval(() => {
-            setNowTimestamp(getDate().getTime());
+            setNowTimestamp(getNow(clockMode).getTime());
         }, 250);
 
         return () => {
             window.clearInterval(id);
         };
-    }, []);
+    }, [clockMode]);
 
     const trainUid = currentTrain?.thread.uid ?? null;
     const expansion = trainUid
@@ -146,7 +151,6 @@ export function TrainSidebar() {
         Boolean(povSyncState);
 
     const lastStopIndex = Math.max(0, routeStops.length - 1);
-
     let currentSegment = {
         startIndex: 0,
         endIndex: Math.min(1, lastStopIndex),
@@ -196,6 +200,98 @@ export function TrainSidebar() {
             }
         }
     }
+
+    const runtimeStatusText = (() => {
+        const STATUS_EDGE_WINDOW_CAP_MS = 30_000;
+        const STATUS_EDGE_WINDOW_MIN_MS = 5_000;
+        const STATUS_EDGE_WINDOW_RATIO = 0.2;
+        const activeStop = routeStops[currentSegment.startIndex];
+        const nextStop = routeStops[currentSegment.endIndex];
+
+        for (let i = 0; i < routeStops.length; i += 1) {
+            const stop = routeStops[i];
+            const stationArrival = toTimestamp(stop.arrival);
+            const stationDeparture = toTimestamp(stop.departure);
+
+            if (
+                stationArrival === null ||
+                stationDeparture === null ||
+                stationArrival > nowTimestamp ||
+                nowTimestamp > stationDeparture
+            ) {
+                continue;
+            }
+
+            const dwellDuration = Math.max(
+                0,
+                stationDeparture - stationArrival
+            );
+            const adaptiveEdgeWindow = Math.min(
+                STATUS_EDGE_WINDOW_CAP_MS,
+                Math.max(
+                    STATUS_EDGE_WINDOW_MIN_MS,
+                    dwellDuration * STATUS_EDGE_WINDOW_RATIO
+                )
+            );
+            const stationTitle = stop.station.title;
+
+            if (dwellDuration <= adaptiveEdgeWindow * 2) {
+                return `стоит на станции ${stationTitle}`;
+            }
+
+            if (
+                i > 0 &&
+                nowTimestamp - stationArrival <= adaptiveEdgeWindow
+            ) {
+                return `прибывает к станции ${stationTitle}`;
+            }
+
+            if (
+                i < lastStopIndex &&
+                stationDeparture - nowTimestamp <= adaptiveEdgeWindow
+            ) {
+                return `отправляется со станции ${stationTitle}`;
+            }
+
+            return `стоит на станции ${stationTitle}`;
+        }
+
+        if (activeStop && nextStop && currentSegment.endIndex > currentSegment.startIndex) {
+            const startTime =
+                toTimestamp(activeStop.departure) ??
+                toTimestamp(activeStop.arrival);
+            const endTime =
+                toTimestamp(nextStop.arrival) ??
+                toTimestamp(nextStop.departure);
+            const nextStationTitle = nextStop.station.title;
+
+            if (startTime !== null && endTime !== null && startTime < endTime) {
+                const legProgress = (nowTimestamp - startTime) / (endTime - startTime);
+                if (legProgress <= 0.1) {
+                    return `отправляется со станции ${activeStop.station.title}`;
+                }
+                if (legProgress >= 0.9) {
+                    return `прибывает к станции ${nextStationTitle}`;
+                }
+            }
+
+            return `едет до станции ${nextStationTitle}`;
+        }
+
+        if (
+            Number.isFinite(departureTimestamp) &&
+            Number.isFinite(arrivalTimestamp)
+        ) {
+            if (nowTimestamp <= departureTimestamp + 60_000) {
+                return `отправляется со станции ${currentTrain?.from.title ?? ""}`.trim();
+            }
+            if (nowTimestamp >= arrivalTimestamp - 60_000) {
+                return `прибывает к станции ${currentTrain?.to.title ?? ""}`.trim();
+            }
+        }
+
+        return "едет";
+    })();
 
     const topHiddenIndexes: number[] = [];
     for (let i = 1; i < currentSegment.startIndex; i += 1) {
@@ -493,9 +589,10 @@ export function TrainSidebar() {
                 <header className="mb-1 text-xl">
                     {currentTrain?.thread.title}
                 </header>
-                <span>
-                    В пути уже {passedTimeLabel} из {totalTimeLabel}
-                </span>
+                <span>В пути уже {passedTimeLabel} из {totalTimeLabel}</span>
+                <div className="text-sm text-muted-foreground">
+                    {runtimeStatusText}
+                </div>
                 <hr className="my-3" />
                 <span className="text-xl">Маршрут</span>
                 {isThreadRouteLoading ? (
