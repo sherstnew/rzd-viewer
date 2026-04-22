@@ -1,7 +1,15 @@
 ﻿import stationsData from "@/jsons/stations.json"
 
 type Nullable<T> = T | null
-export type McdRouteId = "mcd1" | "mcd2" | "mcd3"
+export type McdRouteId =
+  | "mcd1"
+  | "mcd2"
+  | "mcd3"
+  | "mcd4"
+  | "mcd5_south"
+  | "mcd5_north"
+  | "mcd5_korolev"
+  | "mck"
 
 interface CarrierCodes {
   sirena: Nullable<string>

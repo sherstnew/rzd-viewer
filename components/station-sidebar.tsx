@@ -44,10 +44,37 @@ export function StationSidebar({
     isPhotosLoading,
     onClose,
 }: StationSidebarProps) {
+    const [renderedStation, setRenderedStation] =
+        useState<StationSidebarProps["station"]>(station);
+    const [renderedSchedule, setRenderedSchedule] = useState(schedule);
+    const [renderedPhotos, setRenderedPhotos] = useState(photos);
+    const [renderedIsPhotosLoading, setRenderedIsPhotosLoading] =
+        useState(isPhotosLoading);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [isCurrentImageLoading, setIsCurrentImageLoading] = useState(true);
     const [isLightboxImageLoading, setIsLightboxImageLoading] = useState(true);
+
+    if (
+        station &&
+        (station !== renderedStation ||
+            schedule !== renderedSchedule ||
+            photos !== renderedPhotos ||
+            isPhotosLoading !== renderedIsPhotosLoading)
+    ) {
+        setRenderedStation(station);
+        setRenderedSchedule(schedule);
+        setRenderedPhotos(photos);
+        setRenderedIsPhotosLoading(isPhotosLoading);
+    }
+
+    const isOpen = Boolean(station);
+    const visibleStation = station ?? renderedStation;
+    const visibleSchedule = station ? schedule : renderedSchedule;
+    const visiblePhotos = station ? photos : renderedPhotos;
+    const visibleIsPhotosLoading = station
+        ? isPhotosLoading
+        : renderedIsPhotosLoading;
 
     useEffect(() => {
         const resetId = window.setTimeout(() => {
@@ -60,18 +87,20 @@ export function StationSidebar({
         return () => {
             window.clearTimeout(resetId);
         };
-    }, [station?.title, photos.length]);
+    }, [visibleStation?.title, visiblePhotos.length]);
 
     const currentPhoto = useMemo(() => {
-        if (photos.length === 0) {
+        if (visiblePhotos.length === 0) {
             return null;
         }
 
-        return photos[Math.min(currentPhotoIndex, photos.length - 1)];
-    }, [currentPhotoIndex, photos]);
+        return visiblePhotos[
+            Math.min(currentPhotoIndex, visiblePhotos.length - 1)
+        ];
+    }, [currentPhotoIndex, visiblePhotos]);
 
     useEffect(() => {
-        if (!isLightboxOpen || photos.length === 0) {
+        if (!isLightboxOpen || visiblePhotos.length === 0) {
             return;
         }
 
@@ -83,7 +112,9 @@ export function StationSidebar({
 
             if (event.key === "ArrowLeft") {
                 setCurrentPhotoIndex(
-                    (prev) => (prev - 1 + photos.length) % photos.length
+                    (prev) =>
+                        (prev - 1 + visiblePhotos.length) %
+                        visiblePhotos.length
                 );
                 setIsCurrentImageLoading(true);
                 setIsLightboxImageLoading(true);
@@ -91,7 +122,9 @@ export function StationSidebar({
             }
 
             if (event.key === "ArrowRight") {
-                setCurrentPhotoIndex((prev) => (prev + 1) % photos.length);
+                setCurrentPhotoIndex(
+                    (prev) => (prev + 1) % visiblePhotos.length
+                );
                 setIsCurrentImageLoading(true);
                 setIsLightboxImageLoading(true);
             }
@@ -101,13 +134,13 @@ export function StationSidebar({
         return () => {
             window.removeEventListener("keydown", onKeyDown);
         };
-    }, [isLightboxOpen, photos.length]);
+    }, [isLightboxOpen, visiblePhotos.length]);
 
-    if (!station) {
+    if (!visibleStation) {
         return null;
     }
 
-    const canNavigatePhotos = photos.length > 1;
+    const canNavigatePhotos = visiblePhotos.length > 1;
     const currentImageUrl = currentPhoto
         ? toDisplayImageUrl(currentPhoto)
         : null;
@@ -115,7 +148,13 @@ export function StationSidebar({
 
     return (
         <>
-            <div className="absolute top-0 left-0 z-1200 flex h-full w-full max-w-full translate-x-0 flex-col overflow-x-hidden overflow-y-auto bg-card p-4 transition sm:p-5 lg:w-1/4">
+            <div
+                className={`absolute top-0 left-0 z-1200 flex h-full w-full max-w-full flex-col overflow-x-hidden overflow-y-auto bg-card p-4 transition sm:p-5 lg:w-1/4 ${
+                    isOpen
+                        ? "pointer-events-auto translate-x-0"
+                        : "pointer-events-none -translate-x-full"
+                }`}
+            >
                 <button
                     className="absolute top-3 right-3 z-30 flex size-9 items-center justify-center rounded-full bg-card/95 shadow-md"
                     onClick={onClose}
@@ -124,13 +163,13 @@ export function StationSidebar({
                 >
                     <X className="size-4" />
                 </button>
-                <div className="min-w-0 pr-8">
-                    {isPhotosLoading ? (
-                        <div className="flex h-52 items-center justify-center rounded-xl border border-border bg-muted/20">
+                <div className="w-full min-w-0">
+                    {visibleIsPhotosLoading ? (
+                        <div className="flex h-52 w-full items-center justify-center rounded-xl border border-border bg-muted/20">
                             <div className="size-8 animate-spin rounded-full border-2 border-muted-foreground/30 border-t-foreground" />
                         </div>
                     ) : currentPhoto && currentImageUrl ? (
-                        <div className="space-y-2">
+                        <div className="w-full space-y-2">
                             <div className="relative overflow-hidden rounded-xl border border-border bg-muted/20">
                                 {isCurrentImageLoading ? (
                                     <div className="absolute inset-0 flex items-center justify-center bg-card/45">
@@ -149,14 +188,14 @@ export function StationSidebar({
                                     currentPreviewImageUrl ? (
                                         <img
                                             src={currentPreviewImageUrl}
-                                            alt={`Превью станции ${station.title}`}
+                                            alt={`Превью станции ${visibleStation.title}`}
                                             className="absolute inset-0 h-56 w-full object-cover"
                                             loading="lazy"
                                         />
                                     ) : null}
                                     <img
                                         src={currentImageUrl}
-                                        alt={`Фото станции ${station.title}`}
+                                        alt={`Фото станции ${visibleStation.title}`}
                                         className="h-56 w-full object-cover"
                                         loading="lazy"
                                         onLoad={() =>
@@ -178,8 +217,8 @@ export function StationSidebar({
                                                     (prev) =>
                                                         (prev -
                                                             1 +
-                                                            photos.length) %
-                                                        photos.length
+                                                            visiblePhotos.length) %
+                                                        visiblePhotos.length
                                                 );
                                                 setIsCurrentImageLoading(true);
                                                 setIsLightboxImageLoading(true);
@@ -194,7 +233,7 @@ export function StationSidebar({
                                                 setCurrentPhotoIndex(
                                                     (prev) =>
                                                         (prev + 1) %
-                                                        photos.length
+                                                        visiblePhotos.length
                                                 );
                                                 setIsCurrentImageLoading(true);
                                                 setIsLightboxImageLoading(true);
@@ -209,7 +248,7 @@ export function StationSidebar({
                             <div className="flex min-w-0 items-center justify-between gap-2 text-xs text-muted-foreground">
                                 <span>
                                     Фото {currentPhotoIndex + 1} из{" "}
-                                    {photos.length}
+                                    {visiblePhotos.length}
                                 </span>
                                 <a
                                     href={currentPhoto.photoPageUrl}
@@ -228,21 +267,21 @@ export function StationSidebar({
                     )}
                 </div>
                 <header className="text-xl mt-3 break-words">
-                    {station.title}
+                    {visibleStation.title}
                 </header>
                 <div className="text-sm text-muted-foreground break-words">
-                    Направление: {station.direction ?? "нет данных"}
+                    Направление: {visibleStation.direction ?? "нет данных"}
                 </div>
                 <hr className="my-3" />
 
-                <span className="text-xl">Расписание на 3 часа:</span>
-                {schedule.length === 0 ? (
+                <span className="text-xl">Расписание на 1 час:</span>
+                {visibleSchedule.length === 0 ? (
                     <div className="mt-2 text-sm text-muted-foreground">
-                        Нет поездов в ближайшие три часа
+                        Нет поездов в ближайший час
                     </div>
                 ) : (
                     <div className="mt-2 space-y-3">
-                        {schedule.map((item) => (
+                        {visibleSchedule.map((item) => (
                             <div
                                 key={item.key}
                                 className="rounded-lg border border-border p-3"
@@ -275,9 +314,9 @@ export function StationSidebar({
                         ))}
                     </div>
                 )}
-                {station.esrCode ? (
+                {visibleStation.esrCode ? (
                     <div className="mt-2 text-sm text-muted-foreground break-all">
-                        ESR код: {station.esrCode}
+                        ESR код: {visibleStation.esrCode}
                     </div>
                 ) : null}
             </div>
@@ -306,7 +345,7 @@ export function StationSidebar({
                                 {currentPreviewImageUrl ? (
                                     <img
                                         src={currentPreviewImageUrl}
-                                        alt={`Превью станции ${station.title}`}
+                                        alt={`Превью станции ${visibleStation.title}`}
                                         className="absolute inset-0 h-full w-full object-contain opacity-70"
                                         loading="lazy"
                                     />
@@ -316,7 +355,7 @@ export function StationSidebar({
                         ) : null}
                         <img
                             src={currentImageUrl}
-                            alt={`Фото станции ${station.title}`}
+                            alt={`Фото станции ${visibleStation.title}`}
                             className={`max-h-[80vh] w-full rounded-lg object-contain ${isLightboxImageLoading ? "hidden" : ""}`}
                             onLoad={() => setIsLightboxImageLoading(false)}
                             onError={() => setIsLightboxImageLoading(false)}
@@ -324,7 +363,8 @@ export function StationSidebar({
 
                         <div className="mt-2 flex items-center justify-between gap-2 text-sm text-white">
                             <span>
-                                Фото {currentPhotoIndex + 1} из {photos.length}
+                                Фото {currentPhotoIndex + 1} из{" "}
+                                {visiblePhotos.length}
                             </span>
                             <a
                                 href={currentPhoto.photoPageUrl}
@@ -344,8 +384,10 @@ export function StationSidebar({
                                     onClick={() => {
                                         setCurrentPhotoIndex(
                                             (prev) =>
-                                                (prev - 1 + photos.length) %
-                                                photos.length
+                                                (prev -
+                                                    1 +
+                                                    visiblePhotos.length) %
+                                                visiblePhotos.length
                                         );
                                         setIsCurrentImageLoading(true);
                                         setIsLightboxImageLoading(true);
@@ -358,7 +400,9 @@ export function StationSidebar({
                                     type="button"
                                     onClick={() => {
                                         setCurrentPhotoIndex(
-                                            (prev) => (prev + 1) % photos.length
+                                            (prev) =>
+                                                (prev + 1) %
+                                                visiblePhotos.length
                                         );
                                         setIsCurrentImageLoading(true);
                                         setIsLightboxImageLoading(true);

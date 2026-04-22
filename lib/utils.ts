@@ -24,6 +24,10 @@ export function formatDurationToRu(ms: number): string {
   }
 
   const totalMinutes = Math.floor(ms / 1000 / 60)
+  if (totalMinutes <= 0) {
+    return "меньше 1 мин."
+  }
+
   const hours = Math.floor(totalMinutes / 60)
   const minutes = totalMinutes % 60
   const parts: string[] = []

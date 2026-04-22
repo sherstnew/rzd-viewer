@@ -1,11 +1,18 @@
 import localFont from "next/font/local"
+import { Inter } from "next/font/google"
 
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/header"
 import { cn } from "@/lib/utils"
 
-const russianRailSans = localFont({
+const inter = Inter({
+  subsets: ["latin", "cyrillic"],
+  variable: "--font-inter",
+  display: "swap",
+})
+
+const russianRailSerif = localFont({
   src: [
     {
       path: "../public/fonts/RussianRail G Regular.otf",
@@ -23,7 +30,7 @@ const russianRailSans = localFont({
       style: "normal",
     },
   ],
-  variable: "--font-rzd-sans",
+  variable: "--font-rzd-serif",
   display: "swap",
 })
 
@@ -56,7 +63,8 @@ export default function RootLayout({
       className={cn(
         "antialiased",
         "font-sans",
-        russianRailSans.variable,
+        inter.variable,
+        russianRailSerif.variable,
         russianRailHeading.variable
       )}
     >

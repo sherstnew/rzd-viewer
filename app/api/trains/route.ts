@@ -7,6 +7,12 @@ const ODINTSOVO_CODE = "s9600721"
 const LOBNYA_CODE = "s9600781"
 const ZELENOGRAD_KRYUKOVO_CODE = "s9600212"
 const IPPODROM_CODE = "s9601197"
+const MOSCOW_PAVELETSKY_CODE = "s2000005"
+const DOMODEDOVO_CODE = "s9600811"
+const MOSCOW_YAROSLAVSKY_CODE = "s2000002"
+const PUSHKINO_CODE = "s9600701"
+const MYTISHCHI_CODE = "s9600681"
+const BOLSHEVO_CODE = "s9602217"
 const SEARCH_LIMIT = 200
 const SEARCH_DIRECTIONS: ReadonlyArray<{ from: string; to: string; mcd_route_id: McdRouteId }> = [
   { from: PODOLSK_CODE, to: NAKHABINO_CODE, mcd_route_id: "mcd2" },
@@ -15,9 +21,15 @@ const SEARCH_DIRECTIONS: ReadonlyArray<{ from: string; to: string; mcd_route_id:
   { from: LOBNYA_CODE, to: ODINTSOVO_CODE, mcd_route_id: "mcd1" },
   { from: ZELENOGRAD_KRYUKOVO_CODE, to: IPPODROM_CODE, mcd_route_id: "mcd3" },
   { from: IPPODROM_CODE, to: ZELENOGRAD_KRYUKOVO_CODE, mcd_route_id: "mcd3" },
+  { from: MOSCOW_PAVELETSKY_CODE, to: DOMODEDOVO_CODE, mcd_route_id: "mcd5_south" },
+  { from: DOMODEDOVO_CODE, to: MOSCOW_PAVELETSKY_CODE, mcd_route_id: "mcd5_south" },
+  { from: MOSCOW_YAROSLAVSKY_CODE, to: PUSHKINO_CODE, mcd_route_id: "mcd5_north" },
+  { from: PUSHKINO_CODE, to: MOSCOW_YAROSLAVSKY_CODE, mcd_route_id: "mcd5_north" },
+  { from: MYTISHCHI_CODE, to: BOLSHEVO_CODE, mcd_route_id: "mcd5_korolev" },
+  { from: BOLSHEVO_CODE, to: MYTISHCHI_CODE, mcd_route_id: "mcd5_korolev" },
 ]
 
-type McdRouteId = "mcd1" | "mcd2" | "mcd3"
+type McdRouteId = "mcd1" | "mcd2" | "mcd3" | "mcd5_south" | "mcd5_north" | "mcd5_korolev"
 
 type SearchSegment = Record<string, unknown> & {
   mcd_route_id?: McdRouteId

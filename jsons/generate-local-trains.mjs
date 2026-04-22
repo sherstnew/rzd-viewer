@@ -16,6 +16,39 @@ const moscowBig = JSON.parse(fs.readFileSync(path.join(projectRoot, "jsons", "mo
 
 const ROUTE_STATION_DISTANCE_THRESHOLD = 0.00025
 const OUTPUT_PATH = path.join(projectRoot, "jsons", "local-trains.json")
+const MCK_STATION_CODES = [
+  "s9855157",
+  "s9855163",
+  "s9855164",
+  "s9855165",
+  "s9855166",
+  "s9855167",
+  "s9855168",
+  "s9855169",
+  "s9855170",
+  "s9855171",
+  "s9855172",
+  "s9855158",
+  "s9855173",
+  "s9855174",
+  "s9855175",
+  "s9855176",
+  "s9855177",
+  "s9855178",
+  "s9855179",
+  "s9855180",
+  "s9855181",
+  "s9855182",
+  "s9855159",
+  "s9855184",
+  "s9855186",
+  "s9601063",
+  "s9855187",
+  "s9601334",
+  "s9855160",
+  "s9855161",
+  "s9855162",
+]
 
 const ROUTE_DEFINITIONS = {
   mcd1: {
@@ -163,6 +196,158 @@ const ROUTE_DEFINITIONS = {
         firstBackward: 6 * 60 + 29,
         intervalMinutes: 94,
         count: 10,
+      },
+    ],
+  },
+  mcd4: {
+    label: "MCD-4",
+    color: "#41B384",
+    start: [37.066874, 55.550152],
+    end: [38.00832, 55.752306],
+    baseTravelMinutes: 86,
+    dwellMinutes: 1,
+    terminalPlatform: {
+      forward: "track 1",
+      backward: "track 2",
+    },
+    services: [
+      {
+        id: "full_local",
+        subtype: "ivolga",
+        pattern: "all",
+        firstForward: 4 * 60 + 22,
+        firstBackward: 4 * 60 + 37,
+        intervalMinutes: 36,
+        count: 30,
+      },
+      {
+        id: "diameter_fast",
+        subtype: "standard",
+        pattern: "all",
+        firstForward: 5 * 60 + 8,
+        firstBackward: 5 * 60 + 24,
+        intervalMinutes: 72,
+        count: 15,
+      },
+    ],
+  },
+  mcd5_south: {
+    label: "MCD-5",
+    color: "#77B729",
+    start: [37.640771, 55.729498],
+    end: [37.773381, 55.4399],
+    baseTravelMinutes: 48,
+    dwellMinutes: 1,
+    terminalPlatform: {
+      forward: "track 1",
+      backward: "track 2",
+    },
+    services: [
+      {
+        id: "full_local",
+        subtype: "suburban",
+        pattern: "all",
+        firstForward: 4 * 60 + 36,
+        firstBackward: 4 * 60 + 49,
+        intervalMinutes: 30,
+        count: 24,
+      },
+      {
+        id: "standard_plus",
+        subtype: "standard",
+        pattern: "all",
+        firstForward: 5 * 60 + 6,
+        firstBackward: 5 * 60 + 19,
+        intervalMinutes: 60,
+        count: 10,
+      },
+    ],
+  },
+  mcd5_north: {
+    label: "MCD-5",
+    color: "#77B729",
+    start: [37.657484, 55.777685],
+    end: [37.839165, 56.012485],
+    baseTravelMinutes: 42,
+    dwellMinutes: 1,
+    terminalPlatform: {
+      forward: "track 1",
+      backward: "track 2",
+    },
+    services: [
+      {
+        id: "full_local",
+        subtype: "suburban",
+        pattern: "all",
+        firstForward: 4 * 60 + 28,
+        firstBackward: 4 * 60 + 43,
+        intervalMinutes: 26,
+        count: 28,
+      },
+      {
+        id: "standard_plus",
+        subtype: "standard",
+        pattern: "all",
+        firstForward: 5 * 60 + 2,
+        firstBackward: 5 * 60 + 17,
+        intervalMinutes: 56,
+        count: 10,
+      },
+    ],
+  },
+  mcd5_korolev: {
+    label: "MCD-5",
+    color: "#77B729",
+    start: [37.761228, 55.914823],
+    end: [37.861022, 55.926201],
+    baseTravelMinutes: 15,
+    dwellMinutes: 1,
+    terminalPlatform: {
+      forward: "track 1",
+      backward: "track 2",
+    },
+    services: [
+      {
+        id: "full_local",
+        subtype: "suburban",
+        pattern: "all",
+        firstForward: 4 * 60 + 41,
+        firstBackward: 4 * 60 + 56,
+        intervalMinutes: 34,
+        count: 22,
+      },
+      {
+        id: "standard_plus",
+        subtype: "standard",
+        pattern: "all",
+        firstForward: 5 * 60 + 12,
+        firstBackward: 5 * 60 + 27,
+        intervalMinutes: 68,
+        count: 8,
+      },
+    ],
+  },
+  mck: {
+    label: "МЦК",
+    color: "#E42D24",
+    stationCodes: MCK_STATION_CODES,
+    isCircular: true,
+    baseTravelMinutes: 88,
+    dwellMinutes: 1,
+    terminalPlatform: {
+      forward: "track 1",
+      backward: "track 2",
+    },
+    services: [
+      {
+        id: "clockwise_lastochka",
+        subtype: "lastochka",
+        pattern: "all",
+        firstForward: 4 * 60 + 0,
+        firstBackward: 4 * 60 + 0,
+        intervalMinutes: 12,
+        count: 80,
+        directions: ["forward", "backward"],
       },
     ],
   },
@@ -314,6 +499,30 @@ function stationProgress(nearest, routeCoordinates, cumulativeDistances) {
 
 function buildRouteStations(routeId, engine, stationByCode) {
   const definition = ROUTE_DEFINITIONS[routeId]
+
+  if (definition.stationCodes) {
+    return definition.stationCodes.map((code, index) => {
+      const station = stationByCode.get(code)
+      if (!station) {
+        throw new Error(`Failed to resolve station ${code} for ${routeId}`)
+      }
+
+      const longitude = parseCoordinate(station.longitude)
+      const latitude = parseCoordinate(station.latitude)
+      if (longitude === null || latitude === null) {
+        throw new Error(`Station ${code} has no coordinates for ${routeId}`)
+      }
+
+      return {
+        ...toStationRecord(station),
+        longitude,
+        latitude,
+        progress: index,
+        distanceSq: 0,
+      }
+    })
+  }
+
   const route = engine.findRoute(definition.start, definition.end)
   const routeCoordinates = route.features[0]?.geometry.coordinates ?? []
   const cumulativeDistances = buildCumulativeDistances(routeCoordinates)
@@ -353,6 +562,38 @@ function buildRouteStations(routeId, engine, stationByCode) {
   )
 }
 
+function countStationCodeRouteSegments(routeId, engine, stationByCode) {
+  const definition = ROUTE_DEFINITIONS[routeId]
+  const stationCodes = definition.stationCodes ?? []
+  const coordinates = stationCodes.map((code) => {
+    const station = stationByCode.get(code)
+    if (!station) {
+      throw new Error(`Failed to resolve station ${code} for ${routeId}`)
+    }
+
+    const longitude = parseCoordinate(station.longitude)
+    const latitude = parseCoordinate(station.latitude)
+    if (longitude === null || latitude === null) {
+      throw new Error(`Station ${code} has no coordinates for ${routeId}`)
+    }
+
+    return [longitude, latitude]
+  })
+  const pairs = definition.isCircular
+    ? coordinates.map((coordinate, index) => [coordinate, coordinates[(index + 1) % coordinates.length]])
+    : coordinates.slice(0, -1).map((coordinate, index) => [coordinate, coordinates[index + 1]])
+
+  for (const [start, end] of pairs) {
+    const segment = engine.findRoute(start, end)
+    const segmentCoordinates = segment.features[0]?.geometry.coordinates ?? []
+    if (segmentCoordinates.length < 2) {
+      throw new Error(`Failed to build ${routeId} segment ${start.join(",")} -> ${end.join(",")}`)
+    }
+  }
+
+  return pairs.length
+}
+
 function selectPatternStations(routeStations, pattern) {
   if (pattern === "all") {
     return routeStations
@@ -381,20 +622,23 @@ function reverseIfNeeded(items, forward) {
 
 function buildStopList(routeId, stationsForTrain, subtype, departureDate) {
   const definition = ROUTE_DEFINITIONS[routeId]
-  const totalProgress =
-    stationsForTrain[stationsForTrain.length - 1].progress - stationsForTrain[0].progress || 1
-  const dwellMinutes = subtype === "ivolga" ? definition.dwellMinutes : 0
+  const circularLegMinutes = definition.isCircular
+    ? Math.max(2, Math.round(definition.baseTravelMinutes / Math.max(1, stationsForTrain.length - 1)))
+    : null
+  const totalProgress = definition.isCircular
+    ? Math.max(1, stationsForTrain.length - 1)
+    : stationsForTrain[stationsForTrain.length - 1].progress - stationsForTrain[0].progress || 1
+  const dwellMinutes = subtype === "ivolga" || subtype === "lastochka" ? definition.dwellMinutes : 0
   let cursor = new Date(departureDate.getTime())
 
   return stationsForTrain.map((station, index) => {
     const previous = stationsForTrain[index - 1]
-    const progressDelta = previous ? station.progress - previous.progress : 0
+    const progressDelta = previous ? (definition.isCircular ? 1 : station.progress - previous.progress) : 0
 
     if (index > 0) {
-      const travelMinutes = Math.max(
-        2,
-        Math.round((progressDelta / totalProgress) * definition.baseTravelMinutes),
-      )
+      const travelMinutes =
+        circularLegMinutes ??
+        Math.max(2, Math.round((progressDelta / totalProgress) * definition.baseTravelMinutes))
       cursor = addMinutes(cursor, travelMinutes)
     }
 
@@ -412,7 +656,15 @@ function buildStopList(routeId, stationsForTrain, subtype, departureDate) {
       station: toStationRecord(station),
       arrival,
       departure,
-      duration: previous ? Math.max(0, Math.round((progressDelta / totalProgress) * definition.baseTravelMinutes * 60)) : 0,
+      duration: previous
+        ? Math.max(
+            0,
+            Math.round(
+              (circularLegMinutes ?? (progressDelta / totalProgress) * definition.baseTravelMinutes) *
+                60,
+            ),
+          )
+        : 0,
       stop_time: isLast || index === 0 || dwellMinutes === 0 ? null : dwellMinutes * 60,
       platform: index % 2 === 0 ? "обычно 1 путь" : "обычно 2 путь",
       terminal: null,
@@ -440,6 +692,22 @@ function buildSubtype(routeId, subtype) {
     }
   }
 
+  if (subtype === "suburban") {
+    return {
+      title: "Пригородный поезд",
+      code: `${routeId}_suburban`,
+      color,
+    }
+  }
+
+  if (subtype === "lastochka") {
+    return {
+      title: "Ласточка",
+      code: "mck_lastochka",
+      color,
+    }
+  }
+
   return {
     title: "Стандарт плюс",
     code: `${routeId}_standard`,
@@ -448,13 +716,30 @@ function buildSubtype(routeId, subtype) {
 }
 
 function buildVehicle(subtype) {
-  return subtype === "ivolga" ? "Иволга" : "Стандарт плюс"
+  if (subtype === "lastochka") {
+    return "Ласточка"
+  }
+
+  if (subtype === "ivolga") {
+    return "Иволга"
+  }
+
+  if (subtype === "suburban") {
+    return "Пригородный поезд"
+  }
+
+  return "Стандарт плюс"
 }
 
 function buildNumber(routeId, serviceIndex, tripIndex, forward) {
   const baseByRoute = {
     mcd1: forward ? 1110 : 1610,
     mcd3: forward ? 1310 : 1810,
+    mcd4: forward ? 1410 : 1910,
+    mcd5_south: forward ? 1510 : 1810,
+    mcd5_north: forward ? 5510 : 5810,
+    mcd5_korolev: forward ? 5710 : 5910,
+    mck: forward ? 7100 : 7600,
   }
 
   return String(baseByRoute[routeId] + serviceIndex * 100 + tripIndex + 1)
@@ -472,7 +757,10 @@ function createRichSegment({
 }) {
   const definition = ROUTE_DEFINITIONS[routeId]
   const selectedPatternStations = selectPatternStations(routeStations, service.pattern)
-  const stationsForTrain = reverseIfNeeded(selectedPatternStations, forward)
+  const directionStations = reverseIfNeeded(selectedPatternStations, forward)
+  const stationsForTrain = definition.isCircular
+    ? [...directionStations, directionStations[0]]
+    : directionStations
   const jitter = JITTER_SEQUENCE[tripIndex % JITTER_SEQUENCE.length]
   const firstTripMinutes = forward ? service.firstForward : service.firstBackward
   const departureDate = createMoscowDate(
@@ -543,30 +831,22 @@ function generateRichSegments(routeId, routeStations, carrier, startDate) {
 
   definition.services.forEach((service, serviceIndex) => {
     for (let tripIndex = 0; tripIndex < service.count; tripIndex += 1) {
-      segments.push(
-        createRichSegment({
-          routeId,
-          service,
-          serviceIndex,
-          tripIndex,
-          forward: true,
-          routeStations,
-          carrier,
-          startDate,
-        }),
-      )
-      segments.push(
-        createRichSegment({
-          routeId,
-          service,
-          serviceIndex,
-          tripIndex,
-          forward: false,
-          routeStations,
-          carrier,
-          startDate,
-        }),
-      )
+      const directions = service.directions ?? ["forward", "backward"]
+
+      for (const direction of directions) {
+        segments.push(
+          createRichSegment({
+            routeId,
+            service,
+            serviceIndex,
+            tripIndex,
+            forward: direction === "forward",
+            routeStations,
+            carrier,
+            startDate,
+          }),
+        )
+      }
     }
   })
 
@@ -591,10 +871,21 @@ const stationByCode = new Map(
 const engine = createRouteEngine(moscowBig)
 const mcd1RouteStations = buildRouteStations("mcd1", engine, stationByCode)
 const mcd3RouteStations = buildRouteStations("mcd3", engine, stationByCode)
+const mcd4RouteStations = buildRouteStations("mcd4", engine, stationByCode)
+const mcd5SouthRouteStations = buildRouteStations("mcd5_south", engine, stationByCode)
+const mcd5NorthRouteStations = buildRouteStations("mcd5_north", engine, stationByCode)
+const mcd5KorolevRouteStations = buildRouteStations("mcd5_korolev", engine, stationByCode)
+const mckRouteStations = buildRouteStations("mck", engine, stationByCode)
+const mckBuiltSegments = countStationCodeRouteSegments("mck", engine, stationByCode)
 
 const richSegments = [
   ...generateRichSegments("mcd1", mcd1RouteStations, sampleCarrier, sampleDate),
   ...generateRichSegments("mcd3", mcd3RouteStations, sampleCarrier, sampleDate),
+  ...generateRichSegments("mcd4", mcd4RouteStations, sampleCarrier, sampleDate),
+  ...generateRichSegments("mcd5_south", mcd5SouthRouteStations, sampleCarrier, sampleDate),
+  ...generateRichSegments("mcd5_north", mcd5NorthRouteStations, sampleCarrier, sampleDate),
+  ...generateRichSegments("mcd5_korolev", mcd5KorolevRouteStations, sampleCarrier, sampleDate),
+  ...generateRichSegments("mck", mckRouteStations, sampleCarrier, sampleDate),
 ]
 
 const payload = {
@@ -616,6 +907,14 @@ console.log(
       routeStations: {
         mcd1: mcd1RouteStations.length,
         mcd3: mcd3RouteStations.length,
+        mcd4: mcd4RouteStations.length,
+        mcd5_south: mcd5SouthRouteStations.length,
+        mcd5_north: mcd5NorthRouteStations.length,
+        mcd5_korolev: mcd5KorolevRouteStations.length,
+        mck: mckRouteStations.length,
+      },
+      builtRouteSegments: {
+        mck: `${mckBuiltSegments}/${MCK_STATION_CODES.length}`,
       },
     },
     null,

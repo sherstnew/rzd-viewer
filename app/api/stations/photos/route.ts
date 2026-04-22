@@ -1,8 +1,12 @@
 import { NextRequest, NextResponse } from "next/server"
 
 const RAILWAYZ_BASE_URL = "https://railwayz.info"
-const RAILWAYZ_SEARCH_URL = `${RAILWAYZ_BASE_URL}/photolines/search/`
+const RAILWAYZ_SEARCH_URLS = [
+  `${RAILWAYZ_BASE_URL}/photolines/search/`,
+  "http://railwayz.info/photolines/search/",
+]
 const MAX_PHOTOS = 30
+const RAILWAYZ_REQUEST_TIMEOUT_MS = 8000
 
 type StationPhotoItem = {
   thumbUrl: string
@@ -124,6 +128,47 @@ function parsePhotosFromHtml(html: string): StationPhotoItem[] {
   return photos
 }
 
+function describeFetchError(error: unknown): string {
+  if (!(error instanceof Error)) {
+    return "unknown error"
+  }
+
+  const cause = error.cause as { code?: unknown; reason?: unknown } | undefined
+  const causeCode = typeof cause?.code === "string" ? ` (${cause.code})` : ""
+  const causeReason = typeof cause?.reason === "string" ? `: ${cause.reason}` : ""
+  return `${error.name}: ${error.message}${causeCode}${causeReason}`
+}
+
+async function fetchRailwayzSearch(searchBody: string): Promise<Response | null> {
+  const errors: string[] = []
+
+  for (const url of RAILWAYZ_SEARCH_URLS) {
+    try {
+      const response = await fetch(url, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "User-Agent": "Mozilla/5.0 (compatible; rzd-viewer/1.0)",
+        },
+        body: searchBody,
+        cache: "no-store",
+        signal: AbortSignal.timeout(RAILWAYZ_REQUEST_TIMEOUT_MS),
+      })
+
+      if (response.ok) {
+        return response
+      }
+
+      errors.push(`${url}: HTTP ${response.status}`)
+    } catch (error) {
+      errors.push(`${url}: ${describeFetchError(error)}`)
+    }
+  }
+
+  console.warn(`Railwayz photos search failed. ${errors.join("; ")}`)
+  return null
+}
+
 export async function POST(request: NextRequest) {
   const emptyResponse = NextResponse.json({ photos: [] as StationPhotoItem[] })
 
@@ -136,23 +181,16 @@ export async function POST(request: NextRequest) {
 
     const searchBody = new URLSearchParams({ searchstation: esrCode }).toString()
 
-    const response = await fetch(RAILWAYZ_SEARCH_URL, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
-      body: searchBody,
-      cache: "no-store",
-    })
-
-    if (!response.ok) {
+    const response = await fetchRailwayzSearch(searchBody)
+    if (!response) {
       return emptyResponse
     }
 
     const html = await response.text()
     const photos = parsePhotosFromHtml(html)
     return NextResponse.json({ photos })
-  } catch {
+  } catch (err) {
+    console.warn(`Station photos parser failed. ${describeFetchError(err)}`)
     return emptyResponse
   }
 }

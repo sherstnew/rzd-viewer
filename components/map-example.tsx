@@ -30,7 +30,15 @@ const moscowCenter: [number, number] = [55.7558, 37.6173]
 
 type RouteGeoJson = FeatureCollection<LineString, { name: string }>
 type LonLat = [number, number]
-type RouteId = "mcd1" | "mcd2" | "mcd3"
+type RouteId =
+  | "mcd1"
+  | "mcd2"
+  | "mcd3"
+  | "mcd4"
+  | "mcd5_south"
+  | "mcd5_north"
+  | "mcd5_korolev"
+  | "mck"
 
 type SnappedPoint = {
   point: LonLat
@@ -67,8 +75,10 @@ type RouteDefinition = {
   id: RouteId
   label: string
   color: string
-  start: LonLat
-  end: LonLat
+  start?: LonLat
+  end?: LonLat
+  stationCodes?: readonly string[]
+  isCircular?: boolean
 }
 
 type NearestProjection = {
@@ -89,23 +99,65 @@ type RouteProgressOverlay = {
   upcomingRoute: RouteGeoJson | null
 }
 
-const TRAIN_ICON_SIZE_PX = 30
-const TRAIN_ICON_MIN_SIZE_PX = 20
+const TRAIN_ICON_SIZE_PX = 25
+const TRAIN_ICON_MIN_SIZE_PX = 10
 const TRAIN_ICON_MAX_SIZE_PX = 54
 const STATION_MARKER_SIZE_PX = 3
 const STATION_MARKER_MIN_SIZE_PX = 2
 const STATION_MARKER_MAX_SIZE_PX = 7
 const STATION_LABEL_ZOOM_THRESHOLD = 13
 const ROUTE_STATION_DISTANCE_THRESHOLD = 0.00025
-const STATION_SCHEDULE_WINDOW_MS = 3 * 60 * 60 * 1000
+const STATION_SCHEDULE_WINDOW_MS = 60 * 60 * 1000
 const MCD1_ROUTE_COLOR = "#F6A500"
 const MCD2_ROUTE_COLOR = "#d55384"
 const MCD3_ROUTE_COLOR = "#E95B0C"
+const MCD4_ROUTE_COLOR = "#41B384"
+const MCD5_ROUTE_COLOR = "#77B729"
+const MCK_ROUTE_COLOR = "#E42D24"
 const PODOLSK_STATION_CODE = "s9600731"
 const LOBNYA_STATION_CODE = "s9600781"
 const IPPODROM_STATION_CODE = "s9601197"
+const ZHELEZNODOROZHNAYA_STATION_CODE = "s9601675"
+const DOMODEDOVO_STATION_CODE = "s9600811"
+const PUSHKINO_STATION_CODE = "s9600701"
+const BOLSHEVO_STATION_CODE = "s9602217"
+const ANDRONOVKA_MCK_STATION_CODE = "s9855157"
+const LYUBLINO_STATION_CODE = "s9601788"
 const VIDEO_SECTION_START_TITLE = "Красный Строитель"
 const VIDEO_SECTION_END_TITLE = "Подольск"
+const MCK_STATION_CODES = [
+  "s9855157",
+  "s9855163",
+  "s9855164",
+  "s9855165",
+  "s9855166",
+  "s9855167",
+  "s9855168",
+  "s9855169",
+  "s9855170",
+  "s9855171",
+  "s9855172",
+  "s9855158",
+  "s9855173",
+  "s9855174",
+  "s9855175",
+  "s9855176",
+  "s9855177",
+  "s9855178",
+  "s9855179",
+  "s9855180",
+  "s9855181",
+  "s9855182",
+  "s9855159",
+  "s9855184",
+  "s9855186",
+  "s9601063",
+  "s9855187",
+  "s9601334",
+  "s9855160",
+  "s9855161",
+  "s9855162",
+] as const
 
 const ROUTE_DEFINITIONS: RouteDefinition[] = [
   {
@@ -129,16 +181,64 @@ const ROUTE_DEFINITIONS: RouteDefinition[] = [
     start: [37.173888, 55.980039],
     end: [38.23932639021258, 55.560367089788535],
   },
+  {
+    id: "mcd4",
+    label: "МЦД-4",
+    color: MCD4_ROUTE_COLOR,
+    start: [37.066874, 55.550152],
+    end: [38.00832, 55.752306],
+  },
+  {
+    id: "mcd5_south",
+    label: "МЦД-5",
+    color: MCD5_ROUTE_COLOR,
+    start: [37.640771, 55.729498],
+    end: [37.773381, 55.4399],
+  },
+  {
+    id: "mcd5_north",
+    label: "МЦД-5",
+    color: MCD5_ROUTE_COLOR,
+    start: [37.657484, 55.777685],
+    end: [37.839165, 56.012485],
+  },
+  {
+    id: "mcd5_korolev",
+    label: "МЦД-5",
+    color: MCD5_ROUTE_COLOR,
+    start: [37.761228, 55.914823],
+    end: [37.861022, 55.926201],
+  },
+  {
+    id: "mck",
+    label: "МЦК",
+    color: MCK_ROUTE_COLOR,
+    stationCodes: MCK_STATION_CODES,
+    isCircular: true,
+  },
 ]
 const FORWARD_TERMINAL_BY_ROUTE: Record<RouteId, string> = {
   mcd1: LOBNYA_STATION_CODE,
   mcd2: PODOLSK_STATION_CODE,
   mcd3: IPPODROM_STATION_CODE,
+  mcd4: ZHELEZNODOROZHNAYA_STATION_CODE,
+  mcd5_south: DOMODEDOVO_STATION_CODE,
+  mcd5_north: PUSHKINO_STATION_CODE,
+  mcd5_korolev: BOLSHEVO_STATION_CODE,
+  mck: ANDRONOVKA_MCK_STATION_CODE,
 }
 const ROUTE_COLOR_BY_ID: Record<RouteId, string> = {
   mcd1: MCD1_ROUTE_COLOR,
   mcd2: MCD2_ROUTE_COLOR,
   mcd3: MCD3_ROUTE_COLOR,
+  mcd4: MCD4_ROUTE_COLOR,
+  mcd5_south: MCD5_ROUTE_COLOR,
+  mcd5_north: MCD5_ROUTE_COLOR,
+  mcd5_korolev: MCD5_ROUTE_COLOR,
+  mck: MCK_ROUTE_COLOR,
+}
+const FORCED_STATION_CODES_BY_ROUTE: Partial<Record<RouteId, readonly string[]>> = {
+  mcd2: [LYUBLINO_STATION_CODE],
 }
 
 function parseCoordinate(value: unknown): number | null {
@@ -256,6 +356,7 @@ const stationCandidates: StationCandidate[] = Array.isArray(stationsData)
       return [{ code, title, longitude, latitude, direction, esrCode }]
     })
   : []
+const stationCandidateByCode = new Map(stationCandidates.map((station) => [station.code, station]))
 
 function distanceSq(a: LonLat, b: LonLat): number {
   const dx = a[0] - b[0]
@@ -416,12 +517,24 @@ function createTrainIconWithSelection(
   const shadow = isSelected
     ? `filter:drop-shadow(0 0 3px ${selectedColor}) drop-shadow(0 0 8px ${selectedColor});`
     : ""
+  const isRzdIcon = iconSrc.endsWith("/rzd.svg")
+  const isMostransIcon = iconSrc.endsWith("/mostrans.svg")
+  const logoMarkerSize = Math.round(sizePx * 0.78)
+  const logoMarkerBorderWidth = Math.max(1, Math.round(logoMarkerSize * 0.08))
+  const rzdLogoWidth = Math.round(logoMarkerSize * 0.6)
+  const mostransLogoSize = Math.round(logoMarkerSize * 0.46)
+  const mostransLogoPadding = Math.max(2, Math.round(logoMarkerSize * 0.1))
+  const iconHtml = isRzdIcon
+    ? `<div style="width:${sizePx}px;height:${sizePx}px;display:flex;align-items:center;justify-content:center;"><div style="width:${logoMarkerSize}px;height:${logoMarkerSize}px;transform:rotate(${correctedHeading - 45}deg);transform-origin:center center;border:${logoMarkerBorderWidth}px solid #000;border-radius:50% 50% 50% 0;background:#fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box;${shadow}"><img src="${iconSrc}" alt="Train" style="width:${rzdLogoWidth}px;height:auto;transform:rotate(45deg);object-fit:contain;" /></div></div>`
+    : isMostransIcon
+      ? `<div style="width:${sizePx}px;height:${sizePx}px;display:flex;align-items:center;justify-content:center;"><div style="width:${logoMarkerSize}px;height:${logoMarkerSize}px;transform:rotate(${correctedHeading - 45}deg);transform-origin:center center;border:${logoMarkerBorderWidth}px solid #000;border-radius:50% 50% 50% 0;background:#fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box;${shadow}"><div style="width:${mostransLogoSize + mostransLogoPadding * 2}px;height:${mostransLogoSize + mostransLogoPadding * 2}px;border-radius:999px;background:#fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:${mostransLogoPadding}px;transform:rotate(45deg);"><img src="${iconSrc}" alt="Train" style="width:${mostransLogoSize}px;height:${mostransLogoSize}px;object-fit:contain;" /></div></div>`
+    : `<img src="${iconSrc}" alt="Train" style="width:${sizePx}px;height:${sizePx}px;transform:rotate(${correctedHeading}deg);transform-origin:center center;object-fit:contain;${shadow}" />`
 
   return L.divIcon({
     className: "train-marker-wrapper",
     iconSize: [sizePx, sizePx],
     iconAnchor: [sizePx / 2, sizePx / 2],
-    html: `<img src="${iconSrc}" alt="Train" style="width:${sizePx}px;height:${sizePx}px;transform:rotate(${correctedHeading}deg);transform-origin:center center;object-fit:contain;${shadow}" />`,
+    html: iconHtml,
   })
 }
 
@@ -463,6 +576,10 @@ function formatScheduleTime(timestamp: number): string {
   })
 }
 
+function routeGroup(routeId: RouteId | undefined): string {
+  return routeId?.startsWith("mcd5_") ? "mcd5" : (routeId ?? "mcd2")
+}
+
 function buildStationSchedule(
   station: Pick<RouteStation, "code" | "title" | "routeId">,
   nowTimestamp: number,
@@ -473,7 +590,7 @@ function buildStationSchedule(
   const normalizedStationTitle = station.title.trim().toLowerCase()
 
   for (const segment of segments) {
-    if (segment.mcd_route_id && segment.mcd_route_id !== station.routeId) {
+    if (segment.mcd_route_id && routeGroup(segment.mcd_route_id) !== routeGroup(station.routeId)) {
       continue
     }
 
@@ -601,7 +718,11 @@ function trainIconSrc(train: TrainWithCoordinates): string {
     return "/leaflet/standart.svg"
   }
 
-  return "/leaflet/standart.svg"
+  if (subtypeTitle.includes("ласточка") || subtypeTitle.includes("lastochka")) {
+    return "/leaflet/mostrans.svg"
+  }
+
+  return "/leaflet/rzd.svg"
 }
 
 function trainInstanceKey(train: Pick<Train, "thread" | "departure" | "arrival">): string {
@@ -860,10 +981,13 @@ function buildAutoStationsForRoute(routeId: RouteId, routeData: RouteGeoJson | n
   const allMatchedStations = Array.from(stationByCode.values()).sort(
     (left, right) => left.segmentIndex - right.segmentIndex,
   )
+  const forcedStationCodes = new Set(FORCED_STATION_CODES_BY_ROUTE[routeId] ?? [])
   const strictStations = allMatchedStations.filter((item) => item.distanceSq <= strictDistanceSq)
   const stationsToRender =
     strictStations.length >= 2
-      ? strictStations
+      ? allMatchedStations.filter(
+          (item) => item.distanceSq <= strictDistanceSq || forcedStationCodes.has(item.station.code),
+        )
       : allMatchedStations.filter((item) => item.distanceSq <= relaxedDistanceSq)
 
   return stationsToRender
@@ -876,6 +1000,76 @@ function buildAutoStationsForRoute(routeId: RouteId, routeData: RouteGeoJson | n
       direction: station.direction,
       esrCode: station.esrCode,
     }))
+}
+
+function buildExactStationsForRoute(routeId: RouteId, stationCodes: readonly string[]): RouteStation[] {
+  return stationCodes.flatMap((code): RouteStation[] => {
+    const station = stationCandidateByCode.get(code)
+    if (!station) {
+      return []
+    }
+
+    return [
+      {
+        routeId,
+        code: station.code,
+        title: station.title,
+        longitude: station.longitude,
+        latitude: station.latitude,
+        direction: station.direction,
+        esrCode: station.esrCode,
+      },
+    ]
+  })
+}
+
+function buildStationCodeRoute(
+  routeEngine: ReturnType<typeof createRouteEngine>,
+  routeDefinition: RouteDefinition,
+): RouteGeoJson {
+  const stationCodes = routeDefinition.stationCodes ?? []
+  const stationCoordinates = stationCodes.map((code) => {
+    const coordinates = stationCoordinatesByCode.get(code)
+    if (!coordinates) {
+      throw new Error(`Не найдены координаты станции ${code} для ${routeDefinition.label}`)
+    }
+
+    return [coordinates.longitude, coordinates.latitude] as LonLat
+  })
+  const pairs = routeDefinition.isCircular
+    ? stationCoordinates.map((coordinates, index) => [
+        coordinates,
+        stationCoordinates[(index + 1) % stationCoordinates.length],
+      ])
+    : stationCoordinates.slice(0, -1).map((coordinates, index) => [
+        coordinates,
+        stationCoordinates[index + 1],
+      ])
+  const coordinates: LonLat[] = []
+
+  for (const [start, end] of pairs) {
+    const segment = routeEngine.findRoute(start, end)
+    const segmentCoordinates = segment.features[0]?.geometry.coordinates as LonLat[] | undefined
+    if (!segmentCoordinates || segmentCoordinates.length < 2) {
+      continue
+    }
+
+    coordinates.push(...(coordinates.length === 0 ? segmentCoordinates : segmentCoordinates.slice(1)))
+  }
+
+  return {
+    type: "FeatureCollection",
+    features: [
+      {
+        type: "Feature",
+        properties: { name: routeDefinition.label },
+        geometry: {
+          type: "LineString",
+          coordinates,
+        },
+      },
+    ],
+  }
 }
 
 function RouteBounds({ routes }: { routes: RouteGeoJson[] }) {
@@ -969,22 +1163,40 @@ function StationSidebarMapClickCloser({
 
 function ZoomToSelectedStation({
   station,
+  stationTitle,
   routeDataById,
 }: {
   station: RouteStation | null
+  stationTitle: string | null
   routeDataById: RouteDataById
 }) {
   const map = useMap()
 
   useEffect(() => {
-    if (!station) {
+    if (!station && !stationTitle) {
       return
     }
 
-    const snapped = snapToRoute(
-      [station.longitude, station.latitude],
-      routeDataById[station.routeId] ?? null,
-    )
+    const stationPoint = station
+      ? {
+          point: [station.longitude, station.latitude] as LonLat,
+          routeId: station.routeId,
+        }
+      : stationTitle
+        ? {
+            point: (() => {
+              const coordinates = stationCoordinatesByTitle.get(stationTitle)
+              return coordinates ? ([coordinates.longitude, coordinates.latitude] as LonLat) : null
+            })(),
+            routeId: null,
+          }
+        : null
+
+    if (!stationPoint?.point) {
+      return
+    }
+
+    const snapped = snapToRoute(stationPoint.point, stationPoint.routeId ? routeDataById[stationPoint.routeId] ?? null : null)
     const [longitude, latitude] = snapped.point
     const targetZoom = Math.max(map.getZoom(), 13)
 
@@ -992,7 +1204,39 @@ function ZoomToSelectedStation({
       animate: true,
       duration: 0.45,
     })
-  }, [map, routeDataById, station])
+  }, [map, routeDataById, station, stationTitle])
+
+  return null
+}
+
+function ZoomToSelectedTrain({
+  train,
+  trainKey,
+  routeDataById,
+}: {
+  train: TrainWithCoordinates | null
+  trainKey: string | null
+  routeDataById: RouteDataById
+}) {
+  const map = useMap()
+  const lastZoomedTrainKeyRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!train || !trainKey || lastZoomedTrainKeyRef.current === trainKey) {
+      return
+    }
+
+    lastZoomedTrainKeyRef.current = trainKey
+    const routeId = train.mcd_route_id ?? "mcd2"
+    const snapped = snapToRoute([train.longitude, train.latitude], routeDataById[routeId] ?? null)
+    const [longitude, latitude] = snapped.point
+    const targetZoom = Math.max(map.getZoom(), 14)
+
+    map.flyTo([latitude, longitude], targetZoom, {
+      animate: true,
+      duration: 0.45,
+    })
+  }, [map, routeDataById, train, trainKey])
 
   return null
 }
@@ -1017,7 +1261,14 @@ export function MapExample() {
     return Date.now() < stationClickLockUntilRef.current
   }, [])
 
-  const { currentTrain, setCurrentTrain } = useCurrentTrainStore()
+  const {
+    currentTrain,
+    currentStationTitle,
+    setCurrentTrain,
+    setCurrentStationTitle,
+    setRouteStationTitles,
+  } =
+    useCurrentTrainStore()
   const {
     segments,
     threadsByUid,
@@ -1034,10 +1285,16 @@ export function MapExample() {
       const nextRoutes: RouteDataById = {}
 
       for (const routeDefinition of ROUTE_DEFINITIONS) {
-        nextRoutes[routeDefinition.id] = routeEngine.findRoute(
-          routeDefinition.start,
-          routeDefinition.end,
-        )
+        if (routeDefinition.stationCodes) {
+          nextRoutes[routeDefinition.id] = buildStationCodeRoute(routeEngine, routeDefinition)
+          continue
+        }
+
+        if (!routeDefinition.start || !routeDefinition.end) {
+          throw new Error(`Не заданы координаты маршрута ${routeDefinition.label}`)
+        }
+
+        nextRoutes[routeDefinition.id] = routeEngine.findRoute(routeDefinition.start, routeDefinition.end)
       }
 
       return { routeDataById: nextRoutes, routeError: null as string | null }
@@ -1112,6 +1369,10 @@ export function MapExample() {
   )
 
   const currentTrainKey = currentTrain ? trainInstanceKey(currentTrain) : null
+  const selectedTrainForZoom = useMemo(
+    () => (currentTrainKey ? trains.find((train) => trainInstanceKey(train) === currentTrainKey) ?? null : null),
+    [currentTrainKey, trains],
+  )
 
   const selectedTrainRouteOverlay = useMemo(
     () => buildTrainRouteProgressOverlay(currentTrain, routeDataById, clockTimestamp),
@@ -1123,6 +1384,14 @@ export function MapExample() {
       mcd1: buildAutoStationsForRoute("mcd1", routeDataById.mcd1 ?? null),
       mcd2: buildAutoStationsForRoute("mcd2", routeDataById.mcd2 ?? null),
       mcd3: buildAutoStationsForRoute("mcd3", routeDataById.mcd3 ?? null),
+      mcd4: buildAutoStationsForRoute("mcd4", routeDataById.mcd4 ?? null),
+      mcd5_south: buildAutoStationsForRoute("mcd5_south", routeDataById.mcd5_south ?? null),
+      mcd5_north: buildAutoStationsForRoute("mcd5_north", routeDataById.mcd5_north ?? null),
+      mcd5_korolev: buildAutoStationsForRoute(
+        "mcd5_korolev",
+        routeDataById.mcd5_korolev ?? null,
+      ),
+      mck: buildExactStationsForRoute("mck", MCK_STATION_CODES),
     }
   }, [routeDataById])
 
@@ -1137,6 +1406,23 @@ export function MapExample() {
       ),
     [routeStationsById],
   )
+
+  useEffect(() => {
+    setRouteStationTitles(Array.from(new Set(routeStations.map((station) => station.title))))
+  }, [routeStations, setRouteStationTitles])
+
+  useEffect(() => {
+    if (!currentStationTitle) {
+      return
+    }
+
+    const station = routeStations.find((routeStation) => routeStation.title === currentStationTitle)
+
+    setCurrentTrain(null)
+    setCurrentStation(station ?? null)
+    setStationPhotos([])
+    setIsPhotosLoading(Boolean(station?.esrCode))
+  }, [currentStationTitle, routeStations, setCurrentTrain])
 
   const stationSchedule = useMemo<StationScheduleItem[]>(() => {
     if (!currentStation) {
@@ -1160,7 +1446,10 @@ export function MapExample() {
         continue
       }
 
-      if (segment.mcd_route_id && segment.mcd_route_id !== currentStation.routeId) {
+      if (
+        segment.mcd_route_id &&
+        routeGroup(segment.mcd_route_id) !== routeGroup(currentStation.routeId)
+      ) {
         continue
       }
 
@@ -1322,7 +1611,16 @@ export function MapExample() {
           shouldIgnoreMapClick={shouldIgnoreMapClick}
         />
         <MapZoomWatcher onZoomChange={setCurrentZoom} />
-        <ZoomToSelectedStation station={currentStation} routeDataById={routeDataById} />
+        <ZoomToSelectedStation
+          station={currentStation}
+          stationTitle={currentStationTitle}
+          routeDataById={routeDataById}
+        />
+        <ZoomToSelectedTrain
+          train={selectedTrainForZoom}
+          trainKey={currentTrainKey}
+          routeDataById={routeDataById}
+        />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url={`https://{s}.basemaps.cartocdn.com/${tileTheme}_all/{z}/{x}/{y}{r}.png`}
@@ -1413,6 +1711,7 @@ export function MapExample() {
               click: () => {
                 stationClickLockUntilRef.current = Date.now() + 350
                 setCurrentTrain(null)
+                setCurrentStationTitle(station.title)
                 setCurrentStation(station)
                 setStationPhotos([])
                 setIsPhotosLoading(Boolean(station.esrCode))
@@ -1455,6 +1754,7 @@ export function MapExample() {
               zIndexOffset={isSelected ? 1000 : 0}
               eventHandlers={{
                 click: () => {
+                  setCurrentStationTitle(null)
                   closeStationSidebar()
                   setCurrentTrain(train)
                 },
