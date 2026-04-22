@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { GitCommitHorizontal, Search, TrainFront } from "lucide-react";
 import stationsData from "@/jsons/stations.json";
 import { getNow } from "@/lib/runtime-mode";
+import { formatTrainDelay } from "@/lib/train-delays";
 import type { Train } from "@/lib/trains";
 import { useCurrentTrainStore } from "@/stores/currentTrainStore";
 import { useTrainsStore } from "@/stores/trainsStore";
@@ -230,6 +231,10 @@ export function SearchBox() {
                                     result.type === "train"
                                         ? TrainFront
                                         : GitCommitHorizontal;
+                                const delayLabel =
+                                    result.type === "train"
+                                        ? formatTrainDelay(result.train)
+                                        : null;
 
                                 return (
                                     <button
@@ -250,9 +255,16 @@ export function SearchBox() {
                                         }}
                                     >
                                         <Icon className="size-4 shrink-0 text-muted-foreground" />
-                                        <div className="min-w-0">
-                                            <div className="truncate font-medium">
-                                                {result.title}
+                                        <div className="min-w-0 flex-1">
+                                            <div className="flex min-w-0 items-center gap-2">
+                                                <div className="truncate font-medium">
+                                                    {result.title}
+                                                </div>
+                                                {delayLabel ? (
+                                                    <span className="shrink-0 text-xs text-destructive">
+                                                        {delayLabel}
+                                                    </span>
+                                                ) : null}
                                             </div>
                                             {result.subtitle ? (
                                                 <div className="truncate text-xs text-muted-foreground">

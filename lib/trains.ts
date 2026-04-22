@@ -84,6 +84,14 @@ export type TrainThreadPayload = {
   thread_error: ThreadError | null
 }
 
+export type TrainDelayEvent = {
+  type: "fact" | "fact_interpolated" | "possible_delay" | string
+  minutesFromNew: Nullable<number>
+  minutesToNew: Nullable<number>
+  minutesFrom: Nullable<number>
+  minutesTo: Nullable<number>
+}
+
 export interface Train {
   mcd_route_id?: McdRouteId
   thread: Thread
@@ -100,6 +108,8 @@ export interface Train {
   departure: string
   arrival: string
   start_date: string
+  departure_event?: Nullable<TrainDelayEvent>
+  arrival_event?: Nullable<TrainDelayEvent>
   thread_route?: Nullable<Thread>
   thread_error?: Nullable<ThreadError>
 }

@@ -1,7 +1,7 @@
 ﻿"use client"
 
 import localTrainsData from "@/jsons/local-trains.json"
-import type { Train, TrainThreadPayload } from "@/lib/trains"
+import type { Train, TrainDelayEvent, TrainThreadPayload } from "@/lib/trains"
 import { ClockMode, getDateKey, isDevMode } from "@/lib/runtime-mode"
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
@@ -19,7 +19,7 @@ type TrainsStoreState = {
   isLoadingThreads: boolean
   error: string | null
   threadsError: string | null
-  fetchForToday: () => Promise<void>
+  fetchForToday: (options?: { force?: boolean }) => Promise<void>
   fetchThreadsForUids: (uids: string[]) => Promise<void>
 }
 
@@ -107,6 +107,49 @@ function normalizeSegmentsToDay(segments: Train[], dayKey: string): Train[] {
   return segments.map((segment) => normalizeSegmentDatesToDay(segment, dayKey))
 }
 
+function mockLocalTrainDelays(segments: Train[]): Train[] {
+  return segments.map((segment, index) => {
+    const departureMock: TrainDelayEvent | null =
+      index % 17 === 0
+        ? {
+            type: "possible_delay",
+            minutesFromNew: null,
+            minutesToNew: 10,
+            minutesFrom: 0,
+            minutesTo: 10,
+          }
+        : null
+    const arrivalMock: TrainDelayEvent | null =
+      index % 12 === 0
+        ? {
+            type: "fact",
+            minutesFromNew: 2,
+            minutesToNew: 2,
+            minutesFrom: 2,
+            minutesTo: 2,
+          }
+        : index % 23 === 0
+          ? {
+              type: "fact_interpolated",
+              minutesFromNew: 14,
+              minutesToNew: 14,
+              minutesFrom: 14,
+              minutesTo: 14,
+            }
+          : null
+
+    if (!departureMock && !arrivalMock) {
+      return segment
+    }
+
+    return {
+      ...segment,
+      departure_event: departureMock ?? segment.departure_event ?? null,
+      arrival_event: arrivalMock ?? segment.arrival_event ?? null,
+    }
+  })
+}
+
 function buildSafeLocalStorage(): Storage {
   return {
     getItem: (name) => localStorage.getItem(name),
@@ -163,7 +206,7 @@ function readLocalTrains(dayKey: string): Train[] {
     return []
   }
 
-  return normalizeSegmentsToDay(segments, dayKey)
+  return mockLocalTrainDelays(normalizeSegmentsToDay(segments, dayKey))
 }
 
 export const useTrainsStore = create<TrainsStoreState>()(
@@ -179,13 +222,14 @@ export const useTrainsStore = create<TrainsStoreState>()(
       isLoadingThreads: false,
       error: null,
       threadsError: null,
-      fetchForToday: async () => {
+      fetchForToday: async (options) => {
         const devEnabled = isDevMode()
         const desiredClockMode: ClockMode = devEnabled ? "fixed-2026-04-18" : "real"
         const today = getDateKey(desiredClockMode)
         const state = get()
+        const force = options?.force === true
 
-        if (state.cacheDate === today && state.segments.length > 0 && state.clockMode === desiredClockMode) {
+        if (!force && state.cacheDate === today && state.segments.length > 0 && state.clockMode === desiredClockMode) {
           if (state.error) {
             set({ error: null })
           }
@@ -233,8 +277,6 @@ export const useTrainsStore = create<TrainsStoreState>()(
 
           set({
             segments,
-            threadsByUid: {},
-            inFlightUids: {},
             cacheDate: today,
             clockMode: "real",
             dataSource: "api",

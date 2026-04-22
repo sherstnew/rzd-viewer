@@ -6,6 +6,7 @@
 import { resolveTrainProgressByStops } from "@/lib/train-progress";
 import { getNow } from "@/lib/runtime-mode";
 import { useTrainsStore } from "@/stores/trainsStore";
+import { getTrainDelayLabels } from "@/lib/train-delays";
 import { formatDurationToRu } from "@/lib/utils";
 import { useCurrentTrainStore } from "@/stores/currentTrainStore";
 import { X } from "lucide-react";
@@ -245,6 +246,7 @@ export function TrainSidebar() {
 
         return "едет";
     })();
+    const delayDetails = currentTrain ? getTrainDelayLabels(currentTrain) : [];
 
     const topHiddenIndexes: number[] = [];
     for (let i = 1; i < currentSegment.startIndex; i += 1) {
@@ -545,6 +547,15 @@ export function TrainSidebar() {
                 <div className="text-sm text-muted-foreground">
                     {runtimeStatusText}
                 </div>
+                {delayDetails.length > 0 ? (
+                    <div className="mt-2 space-y-1 text-sm">
+                        {delayDetails.map((detail) => (
+                            <div key={detail} className="text-destructive">
+                                {detail}
+                            </div>
+                        ))}
+                    </div>
+                ) : null}
                 <hr className="my-3" />
                 <span className="text-xl">Маршрут</span>
                 {isThreadRouteLoading ? (
@@ -582,7 +593,6 @@ export function TrainSidebar() {
         </>
     );
 }
-
 
 
 

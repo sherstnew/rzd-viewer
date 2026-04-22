@@ -18,6 +18,7 @@ import { useTheme } from "next-themes"
 import { createRouteEngine } from "@/lib/route-engine"
 import { resolveTrainProgressByStops } from "@/lib/train-progress"
 import { findTrains, Train, TrainWithCoordinates } from "@/lib/trains"
+import { formatTrainDelay, getTrainDelayLabels } from "@/lib/train-delays"
 import stationsData from "@/jsons/stations.json"
 import moscowBigGeoJson from "@/jsons/moscow-big.json"
 import { getNow } from "@/lib/runtime-mode"
@@ -555,6 +556,8 @@ type StationScheduleItem = {
   timestamp: number
   arrivalTimeLabel: string | null
   departureTimeLabel: string | null
+  arrivalDelayLabel: string | null
+  departureDelayLabel: string | null
   trainNumber: string
   trainTitle: string
   routeLabel: string
@@ -609,6 +612,8 @@ function buildStationSchedule(
     const stops = segment.thread_route?.stops ?? []
     let matchedStopArrivalTimestamp: number | null = null
     let matchedStopDepartureTimestamp: number | null = null
+    let matchedStopArrivalDelayLabel: string | null = null
+    let matchedStopDepartureDelayLabel: string | null = null
     let hasMatchedStop = false
 
     for (let i = 0; i < stops.length; i += 1) {
@@ -629,6 +634,8 @@ function buildStationSchedule(
         arrivalTimestamp <= windowEnd
       ) {
         matchedStopArrivalTimestamp = arrivalTimestamp
+        matchedStopArrivalDelayLabel =
+          stop.station.code === segment.to.code ? formatTrainDelay(segment, "arrival") : null
       }
 
       const departureTimestamp = toTimestamp(stop.departure)
@@ -638,6 +645,8 @@ function buildStationSchedule(
         departureTimestamp <= windowEnd
       ) {
         matchedStopDepartureTimestamp = departureTimestamp
+        matchedStopDepartureDelayLabel =
+          stop.station.code === segment.from.code ? formatTrainDelay(segment, "departure") : null
       }
     }
 
@@ -661,6 +670,8 @@ function buildStationSchedule(
           matchedStopDepartureTimestamp !== null
             ? formatScheduleTime(matchedStopDepartureTimestamp)
             : null,
+        arrivalDelayLabel: matchedStopArrivalDelayLabel,
+        departureDelayLabel: matchedStopDepartureDelayLabel,
         trainNumber: segment.thread.number,
         trainTitle: segment.thread.title,
         routeLabel,
@@ -684,6 +695,8 @@ function buildStationSchedule(
         timestamp: segmentDeparture,
         arrivalTimeLabel: null,
         departureTimeLabel: formatScheduleTime(segmentDeparture),
+        arrivalDelayLabel: null,
+        departureDelayLabel: formatTrainDelay(segment, "departure"),
         trainNumber: segment.thread.number,
         trainTitle: segment.thread.title,
         routeLabel,
@@ -696,6 +709,8 @@ function buildStationSchedule(
         timestamp: segmentArrival,
         arrivalTimeLabel: formatScheduleTime(segmentArrival),
         departureTimeLabel: null,
+        arrivalDelayLabel: formatTrainDelay(segment, "arrival"),
+        departureDelayLabel: null,
         trainNumber: segment.thread.number,
         trainTitle: segment.thread.title,
         routeLabel,
@@ -1375,8 +1390,8 @@ export function MapExample() {
   )
 
   const selectedTrainRouteOverlay = useMemo(
-    () => buildTrainRouteProgressOverlay(currentTrain, routeDataById, clockTimestamp),
-    [clockTimestamp, currentTrain, routeDataById],
+    () => buildTrainRouteProgressOverlay(selectedTrainForZoom ?? currentTrain, routeDataById, clockTimestamp),
+    [clockTimestamp, currentTrain, routeDataById, selectedTrainForZoom],
   )
 
   const routeStationsById = useMemo((): RouteStationsById => {
@@ -1469,6 +1484,13 @@ export function MapExample() {
 
   useEffect(() => {
     void fetchForToday()
+    const interval = setInterval(() => {
+      void fetchForToday({ force: true })
+    }, 30_000)
+
+    return () => {
+      clearInterval(interval)
+    }
   }, [fetchForToday])
 
   useEffect(() => {
@@ -1562,7 +1584,12 @@ export function MapExample() {
       return
     }
 
-    if (!currentTrain.thread_route && (updated.thread_route || updated.thread_error)) {
+    const currentDelaySignature = JSON.stringify([currentTrain.departure_event, currentTrain.arrival_event])
+    const updatedDelaySignature = JSON.stringify([updated.departure_event, updated.arrival_event])
+    const shouldSyncThreadRoute = !currentTrain.thread_route && (updated.thread_route || updated.thread_error)
+    const shouldSyncDelay = currentDelaySignature !== updatedDelaySignature
+
+    if (shouldSyncThreadRoute || shouldSyncDelay) {
       setCurrentTrain(updated)
     }
   }, [currentTrain, currentTrainKey, trains, setCurrentTrain])
@@ -1739,6 +1766,7 @@ export function MapExample() {
           const heading = resolveTrainHeading(train, snapped)
           const isSelected = currentTrainKey === trainKey
           const selectedColor = ROUTE_COLOR_BY_ID[routeId]
+          const delayDetails = getTrainDelayLabels(train)
 
           return (
             <Marker
@@ -1766,7 +1794,20 @@ export function MapExample() {
                   popupclose: () => setCurrentTrain(null),
                 }}
               >
-                {train.thread.number} {train.thread.title}
+                <div>
+                  <div>
+                    {train.thread.number} {train.thread.title}
+                  </div>
+                  {delayDetails.length > 0 ? (
+                    <div className="mt-1 space-y-1 text-sm">
+                      {delayDetails.map((detail) => (
+                        <div key={detail} className="text-destructive">
+                          {detail}
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
               </Popup>
             </Marker>
           )

@@ -8,6 +8,8 @@ type StationScheduleItem = {
     timestamp: number;
     arrivalTimeLabel: string | null;
     departureTimeLabel: string | null;
+    arrivalDelayLabel: string | null;
+    departureDelayLabel: string | null;
     trainNumber: string;
     trainTitle: string;
     routeLabel: string;
@@ -293,6 +295,11 @@ export function StationSidebar({
                                             <span className="font-normal">
                                                 {item.arrivalTimeLabel}
                                             </span>
+                                            {item.arrivalDelayLabel ? (
+                                                <span className="ml-1 text-xs text-destructive">
+                                                    {item.arrivalDelayLabel}
+                                                </span>
+                                            ) : null}
                                         </span>
                                     ) : null}
                                     {item.departureTimeLabel ? (
@@ -301,6 +308,11 @@ export function StationSidebar({
                                             <span className="font-normal">
                                                 {item.departureTimeLabel}
                                             </span>
+                                            {item.departureDelayLabel ? (
+                                                <span className="ml-1 text-xs text-destructive">
+                                                    {item.departureDelayLabel}
+                                                </span>
+                                            ) : null}
                                         </span>
                                     ) : null}
                                 </div>
