@@ -1411,7 +1411,7 @@ function LongDistanceTrainLoader({
         }
 
         onTrainsChange([])
-        onError(error instanceof Error ? error.message : "Не удалось загрузить дальние поезда")
+        onError(error instanceof Error ? error.message : "Не удалось загрузить поезда дальнего следования")
       }
     },
     [enabled, onError, onTrainsChange],
@@ -2094,7 +2094,7 @@ export function MapExample() {
       {trainsError ? <p className="text-sm text-destructive">{trainsError}</p> : null}
       {threadsError ? <p className="text-sm text-destructive">{threadsError}</p> : null}
       {longDistanceTrainsError ? (
-        <p className="text-sm text-destructive">Не удалось загрузить дальние поезда: {longDistanceTrainsError}</p>
+        <p className="text-sm text-destructive">Не удалось загрузить поезда дальнего следования: {longDistanceTrainsError}</p>
       ) : null}
       {!showLongDistanceTrains ? (
         <>
@@ -2177,9 +2177,9 @@ export function MapExample() {
               <Switch
                 checked={showLongDistanceTrains}
                 onCheckedChange={setShowLongDistanceTrains}
-                aria-label="Показать дальние поезда"
+                aria-label="Показать поезда дальнего следования"
               />
-              <span>Дальние поезда</span>
+              <span>Поезда дальнего следования</span>
               {showLongDistanceTrains && visibleLongDistanceTrains.length > 0 ? (
                 <span className="rounded-sm bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
                   {visibleLongDistanceTrains.length}

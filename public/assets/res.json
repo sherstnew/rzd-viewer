@@ -1,0 +1,3451 @@
+{
+    "data": [
+        {
+            "data": {
+                "thread": {
+                    "uid": "6400x6399_0_9600706_g25_4",
+                    "canonicalUid": "R_6400x6399_9600706_g25_4",
+                    "title": "Шаховская — Серпухов",
+                    "fullTitle": "Поезд 6400/6399 Шаховская — Серпухов",
+                    "number": "6400/6399",
+                    "company": {
+                        "title": "Центральная пригородная пассажирская компания",
+                        "address": "г. Москва, ул.Новорязанская, д.18, стр.22",
+                        "description": "АО «Центральная ППК» – крупнейший перевозчик среди пригородных пассажирских компаний России. Основной перевозчик пассажиров железнодорожным транспортом в пригородном сообщении на территории города Москвы, Московской (кроме Ленинградского направления), Рязанской, Тульской, Калужской, Смоленской, Владимирской, Орловской, Курской областей, а также на отдельных маршрутах Тверской области.\r\nДоля компании в пригородных пассажирских перевозках в Московском железнодорожном узле составляет более 80%,  в целом по России – свыше 60%.",
+                        "url": "http://www.central-ppk.ru/",
+                        "phone": "",
+                        "email": "info@central-ppk.ru",
+                        "hidden": false,
+                        "strange": false
+                    },
+                    "daysText": "ежедневно, кроме 25, 26 апреля, 1, 2, 3 мая",
+                    "runDays": {
+                        "2026": {
+                            "4": [
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                0,
+                                0,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753
+                            ],
+                            "5": [
+                                0,
+                                0,
+                                0,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753
+                            ],
+                            "6": [
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753
+                            ],
+                            "7": [
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753
+                            ],
+                            "8": [
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753
+                            ],
+                            "9": [
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753
+                            ],
+                            "10": [
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                693405753,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0,
+                                0
+                            ]
+                        }
+                    },
+                    "transportType": "suburban",
+                    "comment": "",
+                    "fromStationDepartureLocalDt": "2026-04-23T17:23:00+03:00",
+                    "isInterval": false,
+                    "capitalSlug": "moscow",
+                    "capitalTimezone": "Europe/Moscow",
+                    "capitals": [],
+                    "isNoChangeWagon": false,
+                    "isExpress": false,
+                    "isAeroExpress": false
+                },
+                "threads": {
+                    "693405753": {
+                        "uid": "6400x6399_0_9600706_g25_4",
+                        "title": "Шаховская — Серпухов",
+                        "type": "basic",
+                        "inContext": false,
+                        "current": true,
+                        "startDepartureTime": "15:00",
+                        "stopArrivalTime": "20:28",
+                        "firstDeparture": "2026-04-23",
+                        "daysText": "ежедневно, кроме 25, 26 апреля, 1, 2, 3 мая"
+                    },
+                    "693663415": {
+                        "uid": "6400x6399_1_9600706_g25_4",
+                        "title": "Шаховская — Депо",
+                        "type": "change",
+                        "inContext": false,
+                        "current": false,
+                        "startDepartureTime": "14:32",
+                        "stopArrivalTime": "18:20",
+                        "firstDeparture": "2026-04-25",
+                        "daysText": "только 25, 26 апреля, 1, 2, 3 мая"
+                    }
+                },
+                "rtstations": [
+                    {
+                        "id": 9600706,
+                        "slug": "shakhovskaya-train-station",
+                        "settlement": {
+                            "id": 10763,
+                            "title": "Шаховская"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Шаховская",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600706",
+                        "departureLocalDt": "2026-04-23T15:00:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600706___None___0___None___None",
+                            "departure": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T15:00:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9633658,
+                        "slug": "149-km-platform",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Подмосковные дачи (149 км)",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9633658",
+                        "arrivalLocalDt": "2026-04-23T15:06:00+03:00",
+                        "departureLocalDt": "2026-04-23T15:07:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9633658___6___7___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600697,
+                        "slug": "bukholovo-platform",
+                        "settlement": {
+                            "id": 34323,
+                            "title": "Бухолово"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Бухолово",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600697",
+                        "arrivalLocalDt": "2026-04-23T15:10:00+03:00",
+                        "departureLocalDt": "2026-04-23T15:11:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600697___10___11___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9634001,
+                        "slug": "141-km-moscow-and-moscow-region",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Москвич (141 км)",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9634001",
+                        "arrivalLocalDt": "2026-04-23T15:15:00+03:00",
+                        "departureLocalDt": "2026-04-23T15:16:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9634001___15___16___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600695,
+                        "slug": "blagoveschenskoe",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Благовещенское",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600695",
+                        "arrivalLocalDt": "2026-04-23T15:21:00+03:00",
+                        "departureLocalDt": "2026-04-23T15:22:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600695___21___22___None___None",
+                            "arrival": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T15:21:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T15:22:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9633657,
+                        "slug": "133-km-platform",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. 133 км",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9633657",
+                        "arrivalLocalDt": "2026-04-23T15:25:00+03:00",
+                        "departureLocalDt": "2026-04-23T15:26:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9633657___25___26___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600696,
+                        "slug": "volokolamsk-train-station",
+                        "settlement": {
+                            "id": 10721,
+                            "title": "Волоколамск"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Волоколамск",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600696",
+                        "arrivalLocalDt": "2026-04-23T15:34:00+03:00",
+                        "departureLocalDt": "2026-04-23T15:35:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600696___34___35___None___None",
+                            "arrival": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T15:34:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T15:35:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601422,
+                        "slug": "dubosekovo-platform",
+                        "settlement": {
+                            "id": 72855,
+                            "title": "Дубосеково"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Дубосеково",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601422",
+                        "arrivalLocalDt": "2026-04-23T15:42:00+03:00",
+                        "departureLocalDt": "2026-04-23T15:43:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601422___42___43___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601148,
+                        "slug": "matrenino-platform",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Матрёнино",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601148",
+                        "arrivalLocalDt": "2026-04-23T15:47:00+03:00",
+                        "departureLocalDt": "2026-04-23T15:48:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601148___47___48___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601759,
+                        "slug": "chismena-station",
+                        "settlement": {
+                            "id": 33261,
+                            "title": "Чисмена"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Чисмена",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601759",
+                        "arrivalLocalDt": "2026-04-23T15:55:00+03:00",
+                        "departureLocalDt": "2026-04-23T15:56:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601759___55___56___None___None",
+                            "arrival": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T15:55:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T15:56:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601779,
+                        "slug": "lesodolgorukovo",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Лесодолгоруково",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601779",
+                        "arrivalLocalDt": "2026-04-23T16:03:00+03:00",
+                        "departureLocalDt": "2026-04-23T16:04:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601779___63___64___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9602285,
+                        "slug": "91-km-platform",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. 91 км",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9602285",
+                        "arrivalLocalDt": "2026-04-23T16:08:00+03:00",
+                        "departureLocalDt": "2026-04-23T16:09:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9602285___68___69___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601778,
+                        "slug": "ustinovka-platform",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Устиновка",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601778",
+                        "arrivalLocalDt": "2026-04-23T16:11:00+03:00",
+                        "departureLocalDt": "2026-04-23T16:12:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601778___71___72___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601667,
+                        "slug": "novopetrovskaya",
+                        "settlement": {
+                            "id": 33474,
+                            "title": "Новопетровское"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Новопетровская",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601667",
+                        "arrivalLocalDt": "2026-04-23T16:14:00+03:00",
+                        "departureLocalDt": "2026-04-23T16:15:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601667___74___75___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9602228,
+                        "slug": "rumyantsevo-station",
+                        "settlement": {
+                            "id": 33479,
+                            "title": "Румянцево"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Румянцево",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9602228",
+                        "arrivalLocalDt": "2026-04-23T16:19:00+03:00",
+                        "departureLocalDt": "2026-04-23T16:20:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9602228___79___80___None___None",
+                            "arrival": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T16:19:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T16:22:15+03:00",
+                                "minutesFrom": 2,
+                                "minutesTo": 2
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601780,
+                        "slug": "kursakovskaya",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Курсаковская",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601780",
+                        "arrivalLocalDt": "2026-04-23T16:22:00+03:00",
+                        "departureLocalDt": "2026-04-23T16:23:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601780___82___83___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 1,
+                                "minutesTo": 2
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 1,
+                                "minutesTo": 2
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601802,
+                        "slug": "yadroshino",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Ядрошино",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601802",
+                        "arrivalLocalDt": "2026-04-23T16:26:00+03:00",
+                        "departureLocalDt": "2026-04-23T16:27:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601802___86___87___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 1,
+                                "minutesTo": 2
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 1,
+                                "minutesTo": 2
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601729,
+                        "slug": "73-km-moscow-and-moscow-region-s9601729",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. 73 км",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601729",
+                        "arrivalLocalDt": "2026-04-23T16:28:00+03:00",
+                        "departureLocalDt": "2026-04-23T16:29:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601729___88___89___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 1,
+                                "minutesTo": 2
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 1,
+                                "minutesTo": 2
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9602215,
+                        "slug": "kholscheviki-station",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Холщёвики",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9602215",
+                        "arrivalLocalDt": "2026-04-23T16:32:00+03:00",
+                        "departureLocalDt": "2026-04-23T16:33:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9602215___92___93___None___None",
+                            "arrival": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T16:32:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T16:33:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600769,
+                        "slug": "chekhovskaya",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Чеховская",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600769",
+                        "arrivalLocalDt": "2026-04-23T16:39:00+03:00",
+                        "departureLocalDt": "2026-04-23T16:40:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600769___99___100___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601222,
+                        "slug": "novoierusalimskaya",
+                        "settlement": {
+                            "id": 10731,
+                            "title": "Истра"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Новоиерусалимская",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601222",
+                        "arrivalLocalDt": "2026-04-23T16:45:00+03:00",
+                        "departureLocalDt": "2026-04-23T16:46:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601222___105___106___None___None",
+                            "arrival": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T16:45:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T16:46:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601923,
+                        "slug": "istra-platform",
+                        "settlement": {
+                            "id": 10731,
+                            "title": "Истра"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Истра",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601923",
+                        "arrivalLocalDt": "2026-04-23T16:49:00+03:00",
+                        "departureLocalDt": "2026-04-23T16:50:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601923___109___110___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601763,
+                        "slug": "troitskaya-platform",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Троицкая",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601763",
+                        "arrivalLocalDt": "2026-04-23T16:54:00+03:00",
+                        "departureLocalDt": "2026-04-23T16:55:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601763___114___115___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601651,
+                        "slug": "manikhino-1",
+                        "settlement": {
+                            "id": 33472,
+                            "title": "Манихино"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Манихино 1",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601651",
+                        "arrivalLocalDt": "2026-04-23T16:57:00+03:00",
+                        "departureLocalDt": "2026-04-23T16:58:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601651___117___118___None___None",
+                            "arrival": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T16:57:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T16:58:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9602027,
+                        "slug": "50-km-platform",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. 50 км",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9602027",
+                        "arrivalLocalDt": "2026-04-23T17:00:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:01:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9602027___120___121___None___None",
+                            "arrival": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact_interpolated",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601442,
+                        "slug": "snegiri-station",
+                        "settlement": {
+                            "id": 33481,
+                            "title": "Снегири"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Снегири",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601442",
+                        "arrivalLocalDt": "2026-04-23T17:05:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:06:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601442___125___126___None___None",
+                            "arrival": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T17:05:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            },
+                            "departure": {
+                                "type": "fact",
+                                "factTime": "2026-04-23T17:06:00+03:00",
+                                "minutesFrom": 0,
+                                "minutesTo": 0
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600675,
+                        "slug": "miitovskaya",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Миитовская",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600675",
+                        "arrivalLocalDt": "2026-04-23T17:11:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:12:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600675___131___132___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600871,
+                        "slug": "dedovsk-train-station",
+                        "settlement": {
+                            "id": 21627,
+                            "title": "Дедовск"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Дедовск",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600871",
+                        "arrivalLocalDt": "2026-04-23T17:14:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:15:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600871___134___135___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601748,
+                        "slug": "malinovka-platform",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Малиновка",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601748",
+                        "arrivalLocalDt": "2026-04-23T17:17:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:18:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601748___137___138___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601122,
+                        "slug": "nakhabino-station",
+                        "settlement": {
+                            "id": 24461,
+                            "title": "Нахабино"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Нахабино",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": true,
+                        "isStationTo": false,
+                        "platform": "5 или 6 путь",
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601122",
+                        "arrivalLocalDt": "2026-04-23T17:22:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:23:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601122___142___143___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601770,
+                        "slug": "anikeevka-platform",
+                        "settlement": {
+                            "id": 73059,
+                            "title": "Аникеевка"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Аникеевка",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601770",
+                        "arrivalLocalDt": "2026-04-23T17:25:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:26:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601770___145___146___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601364,
+                        "slug": "opalikha-platform",
+                        "settlement": {
+                            "id": 39684,
+                            "title": "Опалиха"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Опалиха",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601364",
+                        "arrivalLocalDt": "2026-04-23T17:28:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:29:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601364___148___149___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601142,
+                        "slug": "krasnogorskaya-platform",
+                        "settlement": {
+                            "id": 10735,
+                            "title": "Красногорск"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Красногорская",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601142",
+                        "arrivalLocalDt": "2026-04-23T17:32:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:33:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601142___152___153___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9602460,
+                        "slug": "pavshino-train-station",
+                        "settlement": {
+                            "id": 10735,
+                            "title": "Красногорск"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Павшино",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9602460",
+                        "arrivalLocalDt": "2026-04-23T17:35:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:36:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9602460___155___156___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9874964,
+                        "slug": "penyagino-poyma-platform",
+                        "settlement": {
+                            "id": 10735,
+                            "title": "Красногорск"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Пенягино",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9874964",
+                        "arrivalLocalDt": "2026-04-23T17:38:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:39:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9874964___158___159___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9874963,
+                        "slug": "volokolamskaya-platform",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Волоколамская",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9874963",
+                        "arrivalLocalDt": "2026-04-23T17:41:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:42:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9874963___161___162___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9602036,
+                        "slug": "trikotazhnaya",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Трикотажная",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9602036",
+                        "arrivalLocalDt": "2026-04-23T17:43:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:44:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9602036___163___164___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600741,
+                        "slug": "tushino-station",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Тушинская (Тушино)",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600741",
+                        "arrivalLocalDt": "2026-04-23T17:48:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:49:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600741___168___169___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9879240,
+                        "slug": "schukinskaya-platform",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Щукинская",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9879240",
+                        "arrivalLocalDt": "2026-04-23T17:52:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:53:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9879240___172___173___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601688,
+                        "slug": "leningradskaya-platform",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Стрешнево (МЦД-2)",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601688",
+                        "arrivalLocalDt": "2026-04-23T17:55:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:56:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601688___175___176___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601947,
+                        "slug": "krasniy-baltiets-station",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Красный Балтиец",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601947",
+                        "arrivalLocalDt": "2026-04-23T17:58:00+03:00",
+                        "departureLocalDt": "2026-04-23T17:59:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601947___178___179___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601934,
+                        "slug": "grazhdanskaya",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Гражданская",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601934",
+                        "arrivalLocalDt": "2026-04-23T18:01:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:02:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601934___181___182___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600901,
+                        "slug": "dmitrovskaya",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Дмитровская",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600901",
+                        "arrivalLocalDt": "2026-04-23T18:04:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:05:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600901___184___185___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9883699,
+                        "slug": "maryina-roscha",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Марьина Роща",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": "2 путь",
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9883699",
+                        "arrivalLocalDt": "2026-04-23T18:08:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:09:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9883699___188___189___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601266,
+                        "slug": "rzhevskaya",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Рижская (МЦД-2, 4)",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601266",
+                        "arrivalLocalDt": "2026-04-23T18:11:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:12:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601266___191___192___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 2001005,
+                        "slug": "moskva-kalanchevskaya",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Площадь трёх вокзалов (Каланчёвская)",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": "3 путь",
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/2001005",
+                        "arrivalLocalDt": "2026-04-23T18:14:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:15:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___2001005___194___195___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 2000001,
+                        "slug": "moscow-kurskaya",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Москва (Курский вокзал)",
+                        "pageType": "train",
+                        "mainSubtype": "train",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/2000001",
+                        "arrivalLocalDt": "2026-04-23T18:20:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:21:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___2000001___200___201___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601813,
+                        "slug": "moskva-tovarnaya-kurskaya",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Москва-Товарная",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601813",
+                        "arrivalLocalDt": "2026-04-23T18:25:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:26:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601813___205___206___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600866,
+                        "slug": "kalitniki",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Калитники",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600866",
+                        "arrivalLocalDt": "2026-04-23T18:28:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:29:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600866___208___209___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9868807,
+                        "slug": "novokhokhlovskaya-kur",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Новохохловская",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9868807",
+                        "arrivalLocalDt": "2026-04-23T18:30:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:31:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9868807___210___211___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600711,
+                        "slug": "textilschiki",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Текстильщики",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600711",
+                        "arrivalLocalDt": "2026-04-23T18:33:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:34:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600711___213___214___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9881845,
+                        "slug": "pechatniki-platform",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Печатники",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9881845",
+                        "arrivalLocalDt": "2026-04-23T18:36:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:37:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9881845___216___217___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601788,
+                        "slug": "lyublino-station",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Люблино",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601788",
+                        "arrivalLocalDt": "2026-04-23T18:38:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:39:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601788___218___219___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9602245,
+                        "slug": "depo-moscow-s9602245",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Депо",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9602245",
+                        "arrivalLocalDt": "2026-04-23T18:40:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:41:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9602245___220___221___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601898,
+                        "slug": "pererva",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Перерва",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601898",
+                        "arrivalLocalDt": "2026-04-23T18:43:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:44:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601898___223___224___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9876608,
+                        "slug": "kurjanovo-platform",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Курьяново",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9876608",
+                        "arrivalLocalDt": "2026-04-23T18:46:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:47:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9876608___226___227___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601711,
+                        "slug": "moskvoreche-platform",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Москворечье",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601711",
+                        "arrivalLocalDt": "2026-04-23T18:48:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:49:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601711___228___229___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600891,
+                        "slug": "tsaritsyno",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Царицыно",
+                        "pageType": "train",
+                        "mainSubtype": "train",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": "обычно 1 путь",
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600891",
+                        "arrivalLocalDt": "2026-04-23T18:52:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:53:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600891___232___233___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601256,
+                        "slug": "pokrovskoe-platform",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Покровское",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601256",
+                        "arrivalLocalDt": "2026-04-23T18:56:00+03:00",
+                        "departureLocalDt": "2026-04-23T18:57:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601256___236___237___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601943,
+                        "slug": "krasniy-stroitel-station",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Красный Строитель",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601943",
+                        "arrivalLocalDt": "2026-04-23T18:59:00+03:00",
+                        "departureLocalDt": "2026-04-23T19:00:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601943___239___240___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600703,
+                        "slug": "bittsa",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Битца",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600703",
+                        "arrivalLocalDt": "2026-04-23T19:02:00+03:00",
+                        "departureLocalDt": "2026-04-23T19:03:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600703___242___243___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601291,
+                        "slug": "butovo-moscow",
+                        "settlement": {
+                            "id": 213,
+                            "title": "Москва"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Бутово",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601291",
+                        "arrivalLocalDt": "2026-04-23T19:06:00+03:00",
+                        "departureLocalDt": "2026-04-23T19:07:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601291___246___247___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600951,
+                        "slug": "scherbinka-train-station",
+                        "settlement": {
+                            "id": 21624,
+                            "title": "Щербинка"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Щербинка",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600951",
+                        "arrivalLocalDt": "2026-04-23T19:10:00+03:00",
+                        "departureLocalDt": "2026-04-23T19:11:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600951___250___251___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9871176,
+                        "slug": "ostafyevo-platform",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Остафьево",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": "1 путь",
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9871176",
+                        "arrivalLocalDt": "2026-04-23T19:13:00+03:00",
+                        "departureLocalDt": "2026-04-23T19:14:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9871176___253___254___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9602273,
+                        "slug": "silikatnaya",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Силикатная",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9602273",
+                        "arrivalLocalDt": "2026-04-23T19:16:00+03:00",
+                        "departureLocalDt": "2026-04-23T19:17:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9602273___256___257___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600731,
+                        "slug": "podolsk-podolsk",
+                        "settlement": {
+                            "id": 10747,
+                            "title": "Подольск"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Подольск",
+                        "pageType": "train",
+                        "mainSubtype": "train",
+                        "isStationFrom": false,
+                        "isStationTo": true,
+                        "platform": "1 путь",
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600731",
+                        "arrivalLocalDt": "2026-04-23T19:22:00+03:00",
+                        "departureLocalDt": "2026-04-23T19:29:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600731___262___269___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601494,
+                        "slug": "kutuzovskaya-platform",
+                        "settlement": {
+                            "id": 10747,
+                            "title": "Подольск"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Кутузовская",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601494",
+                        "arrivalLocalDt": "2026-04-23T19:32:00+03:00",
+                        "departureLocalDt": "2026-04-23T19:33:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601494___272___273___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601207,
+                        "slug": "vesennyaya-moscow-and-moscow-region",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Весенняя",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601207",
+                        "arrivalLocalDt": "2026-04-23T19:34:00+03:00",
+                        "departureLocalDt": "2026-04-23T19:35:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601207___274___275___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601157,
+                        "slug": "grivno",
+                        "settlement": {
+                            "id": 24454,
+                            "title": "Климовск"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Гривно",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601157",
+                        "arrivalLocalDt": "2026-04-23T19:38:00+03:00",
+                        "departureLocalDt": "2026-04-23T19:39:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601157___278___279___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601276,
+                        "slug": "lvovskaya-station",
+                        "settlement": {
+                            "id": 33929,
+                            "title": "Львовский"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Львовская",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601276",
+                        "arrivalLocalDt": "2026-04-23T19:44:00+03:00",
+                        "departureLocalDt": "2026-04-23T19:45:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601276___284___285___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601752,
+                        "slug": "molody-ex-kolkhoznaya",
+                        "settlement": {
+                            "id": 34263,
+                            "title": "Молоди"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Молоди",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601752",
+                        "arrivalLocalDt": "2026-04-23T19:47:00+03:00",
+                        "departureLocalDt": "2026-04-23T19:48:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601752___287___288___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601626,
+                        "slug": "stolbovaya-station",
+                        "settlement": {
+                            "id": 34276,
+                            "title": "Столбовая"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Столбовая",
+                        "pageType": "train",
+                        "mainSubtype": "train",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601626",
+                        "arrivalLocalDt": "2026-04-23T19:51:00+03:00",
+                        "departureLocalDt": "2026-04-23T19:52:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601626___291___292___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9602313,
+                        "slug": "66-km-platform",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Ивачково (66 км)",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9602313",
+                        "arrivalLocalDt": "2026-04-23T19:54:00+03:00",
+                        "departureLocalDt": "2026-04-23T19:55:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9602313___294___295___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9602222,
+                        "slug": "chepelevo-platform",
+                        "settlement": {
+                            "id": 34281,
+                            "title": "Чепелёво"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Чепелёво",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9602222",
+                        "arrivalLocalDt": "2026-04-23T19:59:00+03:00",
+                        "departureLocalDt": "2026-04-23T20:00:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9602222___299___300___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601062,
+                        "slug": "chekhov-train-station",
+                        "settlement": {
+                            "id": 10761,
+                            "title": "Чехов"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Чехов",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601062",
+                        "arrivalLocalDt": "2026-04-23T20:03:00+03:00",
+                        "departureLocalDt": "2026-04-23T20:04:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601062___303___304___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601743,
+                        "slug": "luch-platform",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Луч",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601743",
+                        "arrivalLocalDt": "2026-04-23T20:08:00+03:00",
+                        "departureLocalDt": "2026-04-23T20:09:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601743___308___309___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9602216,
+                        "slug": "sharapova-okhota-station",
+                        "settlement": {
+                            "id": 40159,
+                            "title": "Шарапова Охота"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Шарапова Охота",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9602216",
+                        "arrivalLocalDt": "2026-04-23T20:13:00+03:00",
+                        "departureLocalDt": "2026-04-23T20:14:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9602216___313___314___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9601661,
+                        "slug": "92-km-moscow-and-moscow-region",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. 92 км",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9601661",
+                        "arrivalLocalDt": "2026-04-23T20:18:00+03:00",
+                        "departureLocalDt": "2026-04-23T20:19:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9601661___318___319___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600832,
+                        "slug": "avantgard",
+                        "settlement": {},
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "пл. Авангард",
+                        "pageType": "train",
+                        "mainSubtype": "suburban",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600832",
+                        "arrivalLocalDt": "2026-04-23T20:22:00+03:00",
+                        "departureLocalDt": "2026-04-23T20:23:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600832___322___323___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            },
+                            "departure": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    },
+                    {
+                        "id": 9600830,
+                        "slug": "serpukhov",
+                        "settlement": {
+                            "id": 10754,
+                            "title": "Серпухов"
+                        },
+                        "country": {
+                            "id": 225,
+                            "code": "RU",
+                            "title": "Россия"
+                        },
+                        "title": "Серпухов",
+                        "pageType": "train",
+                        "mainSubtype": "train",
+                        "isStationFrom": false,
+                        "isStationTo": false,
+                        "platform": null,
+                        "timezone": "Europe/Moscow",
+                        "timezoneIsHidden": false,
+                        "url": "/station/9600830",
+                        "arrivalLocalDt": "2026-04-23T20:28:00+03:00",
+                        "capitalTimeOffset": "+00:00",
+                        "isFuzzy": false,
+                        "isTechnicalStop": false,
+                        "hidden": false,
+                        "isNoStop": false,
+                        "state": {
+                            "key": "6400/6399__9600706___2026-04-23T15:00:00___9600830___328___None___None___None",
+                            "arrival": {
+                                "type": "possible_ok"
+                            }
+                        },
+                        "isCombined": false
+                    }
+                ],
+                "relatedThreads": []
+            }
+        }
+    ]
+}

@@ -75,7 +75,7 @@ export function LongDistanceTrainSidebar({
           <TrainFront className="size-5" />
         </div>
         <div>
-          <div className="text-sm text-muted-foreground">Дальний поезд</div>
+          <div className="text-sm text-muted-foreground">Поезд дальнего следования</div>
           <h2 className="text-2xl leading-tight font-semibold">Поезд {trainNumber}</h2>
         </div>
       </div>

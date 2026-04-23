@@ -5,6 +5,7 @@ import {
   createRussiaGeoFilter,
   normalizeLongDistanceRoutePayload,
   normalizeLongDistanceRouteRequestNumber,
+  type LongDistanceRoute,
   type RussiaGeoFilter,
   type RussiaRegionsGeoJson,
 } from "@/lib/long-distance-trains"
@@ -47,6 +48,10 @@ function routeNumberCandidates(number: string): string[] {
   return Array.from(new Set(candidates))
 }
 
+function hasUsableRouteData(route: LongDistanceRoute): boolean {
+  return route.stations.length > 0
+}
+
 async function fetchRzdRoute(number: string, date: string) {
   const url = new URL(`${RZD_ROUTE_BASE_URL}/${encodeURIComponent(number)}/departure/${date}`)
   url.searchParams.set("useTimeZone", "true")
@@ -60,7 +65,7 @@ async function fetchRzdRoute(number: string, date: string) {
 
   if (!response.ok) {
     const text = await response.text()
-    throw new Error(`RZD route request for ${number} failed (${response.status}): ${text.slice(0, 300)}`)
+    throw new Error(`Маршрут ${number} не найден (${response.status}): ${text.slice(0, 300)}`)
   }
 
   return response.json()
@@ -100,6 +105,10 @@ export async function GET(request: Request) {
       try {
         const rawPayload = await fetchRzdRoute(candidate, date)
         const payload = normalizeLongDistanceRoutePayload(rawPayload, candidate, date, isPointInRussia)
+        if (!hasUsableRouteData(payload)) {
+          throw new Error(`Маршрут ${candidate} не найден`)
+        }
+
         routeCache.set(cacheKey, {
           fetchedAt: Date.now(),
           payload,

@@ -514,6 +514,7 @@ export function longDistanceTrainKey(train: Pick<LongDistanceTrainObject, "id" |
 }
 
 const RZD_ROUTE_NUMBER_SUFFIXES: Record<string, string> = {
+  SHHJ: "SZ",
   YE: "EI",
   YA: "JA",
   QI: "YJ",
