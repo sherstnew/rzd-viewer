@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FeatureCollection, GeoJsonObject, LineString } from "geojson"
@@ -126,7 +126,6 @@ const LONG_DISTANCE_TRAINS_CACHE_TTL_MS = 60_000
 const LONG_DISTANCE_TRAINS_DEBOUNCE_MS = 350
 const LONG_DISTANCE_VIEWPORT_PRECISION = 3
 const YANDEX_LIVE_OBJECTS_URL = "https://rasp.yandex.ru/maps/train/objects"
-const OPENRAILWAYMAP_TILE_URL = "https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png"
 const OPENRAILWAYMAP_ATTRIBUTION =
   '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>, Style: <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA 2.0</a> <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> and OpenStreetMap'
 
@@ -1634,15 +1633,37 @@ export function MapExample() {
   const [currentStation, setCurrentStation] = useState<RouteStation | null>(null)
   const [stationPhotos, setStationPhotos] = useState<StationPhotoItem[]>([])
   const [isPhotosLoading, setIsPhotosLoading] = useState(false)
-  const [showLongDistanceTrains, setShowLongDistanceTrains] = useState(false)
   const [longDistanceTrains, setLongDistanceTrains] = useState<LongDistanceTrainObject[]>([])
   const [longDistanceTrainsError, setLongDistanceTrainsError] = useState<string | null>(null)
-  const [selectedLongDistanceTrain, setSelectedLongDistanceTrain] = useState<LongDistanceTrainObject | null>(null)
   const [selectedLongDistanceRoute, setSelectedLongDistanceRoute] = useState<LongDistanceRoute | null>(null)
   const [longDistanceRouteError, setLongDistanceRouteError] = useState<string | null>(null)
   const [isLongDistanceRouteLoading, setIsLongDistanceRouteLoading] = useState(false)
   const [russiaGeoFilter, setRussiaGeoFilter] = useState<RussiaGeoFilter | null>(null)
   const stationClickLockUntilRef = useRef(0)
+
+  const {
+    currentTrain,
+    currentStationTitle,
+    showLongDistanceTrains,
+    selectedLongDistanceTrain,
+    setCurrentTrain,
+    setCurrentStationTitle,
+    setRouteStationTitles,
+    setShowLongDistanceTrains,
+    setVisibleLongDistanceTrains,
+    setSelectedLongDistanceTrain,
+  } =
+    useCurrentTrainStore()
+  const {
+    segments,
+    threadsByUid,
+    clockMode,
+    fetchForToday,
+    fetchThreadsForUids,
+    error: trainsError,
+    threadsError,
+  } = useTrainsStore()
+
   const showPermanentStationLabels = currentZoom >= STATION_LABEL_ZOOM_THRESHOLD
   const trainIconSize = trainIconSizeByZoom(currentZoom)
   const stationMarkerRadius = stationMarkerRadiusByZoom(currentZoom)
@@ -1656,29 +1677,11 @@ export function MapExample() {
     setSelectedLongDistanceRoute(null)
     setLongDistanceRouteError(null)
     setIsLongDistanceRouteLoading(false)
-  }, [])
+  }, [setSelectedLongDistanceTrain])
 
   const shouldIgnoreMapClick = useCallback(() => {
     return Date.now() < stationClickLockUntilRef.current
   }, [])
-
-  const {
-    currentTrain,
-    currentStationTitle,
-    setCurrentTrain,
-    setCurrentStationTitle,
-    setRouteStationTitles,
-  } =
-    useCurrentTrainStore()
-  const {
-    segments,
-    threadsByUid,
-    clockMode,
-    fetchForToday,
-    fetchThreadsForUids,
-    error: trainsError,
-    threadsError,
-  } = useTrainsStore()
 
   useEffect(() => {
     if (showLongDistanceTrains) {
@@ -1811,6 +1814,10 @@ export function MapExample() {
       ),
     [longDistanceTrains, russiaGeoFilter],
   )
+
+  useEffect(() => {
+    setVisibleLongDistanceTrains(visibleLongDistanceTrains)
+  }, [setVisibleLongDistanceTrains, visibleLongDistanceTrains])
 
   const routeStationsById = useMemo((): RouteStationsById => {
     return {
@@ -2159,13 +2166,15 @@ export function MapExample() {
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url={`https://{s}.basemaps.cartocdn.com/${tileTheme}_all/{z}/{x}/{y}{r}.png`}
         />
-        <TileLayer
-          attribution={OPENRAILWAYMAP_ATTRIBUTION}
-          className="openrailwaymap-muted-layer"
-          opacity={0.72}
-          url={OPENRAILWAYMAP_TILE_URL}
-          zIndex={320}
-        />
+        {showLongDistanceTrains ? (
+          <TileLayer
+            attribution={OPENRAILWAYMAP_ATTRIBUTION}
+            className="openrailwaymap-muted-layer"
+            opacity={0.26}
+            url={"https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png"}
+            zIndex={320}
+          />
+        ) : null}
         <div className="leaflet-top leaflet-left z-1000">
           <div className="leaflet-control mt-3 ml-3">
             <label className="flex cursor-pointer items-center gap-3 rounded-md border border-border bg-card/95 px-3 py-2 text-sm font-medium shadow-md backdrop-blur transition hover:bg-accent">

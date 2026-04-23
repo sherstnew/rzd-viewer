@@ -6,6 +6,7 @@ import stationsData from "@/jsons/stations.json";
 import { getNow } from "@/lib/runtime-mode";
 import { formatTrainDelay } from "@/lib/train-delays";
 import type { Train } from "@/lib/trains";
+import type { LongDistanceTrainObject } from "@/lib/long-distance-trains";
 import { useCurrentTrainStore } from "@/stores/currentTrainStore";
 import { useTrainsStore } from "@/stores/trainsStore";
 import {
@@ -34,6 +35,13 @@ type SearchResult =
           title: string;
           subtitle: string;
           train: Train;
+      }
+    | {
+          type: "long-distance-train";
+          key: string;
+          title: string;
+          subtitle: string | null;
+          train: LongDistanceTrainObject;
       };
 
 const MAX_VISIBLE_RESULTS = 8;
@@ -126,6 +134,15 @@ export function SearchBox() {
     const routeStationTitles = useCurrentTrainStore(
         (state) => state.routeStationTitles
     );
+    const showLongDistanceTrains = useCurrentTrainStore(
+        (state) => state.showLongDistanceTrains
+    );
+    const visibleLongDistanceTrains = useCurrentTrainStore(
+        (state) => state.visibleLongDistanceTrains
+    );
+    const setSelectedLongDistanceTrain = useCurrentTrainStore(
+        (state) => state.setSelectedLongDistanceTrain
+    );
     const setCurrentTrain = useCurrentTrainStore(
         (state) => state.setCurrentTrain
     );
@@ -142,6 +159,23 @@ export function SearchBox() {
     const results = useMemo<SearchResult[]>(() => {
         if (!normalizedQuery) {
             return [];
+        }
+
+        if (showLongDistanceTrains) {
+            return visibleLongDistanceTrains
+                .filter((train) =>
+                    toSearchValue(train.number).includes(normalizedQuery)
+                )
+                .map((train) => ({
+                    type: "long-distance-train" as const,
+                    key: `long-distance-train-${train.id}-${train.date ?? "no-date"}`,
+                    title: train.number,
+                    subtitle:
+                        train.date && train.time
+                            ? `${train.date} ${train.time}`
+                            : train.date ?? train.time ?? null,
+                    train,
+                }));
         }
 
         const stationResults: SearchResult[] = stationSearchItems
@@ -175,7 +209,14 @@ export function SearchBox() {
             }));
 
         return [...stationResults, ...trainResults];
-    }, [currentTimestamp, normalizedQuery, routeStationTitleSet, segments]);
+    }, [
+        currentTimestamp,
+        normalizedQuery,
+        routeStationTitleSet,
+        segments,
+        showLongDistanceTrains,
+        visibleLongDistanceTrains,
+    ]);
 
     const visibleResults = results.slice(0, MAX_VISIBLE_RESULTS);
 
@@ -228,7 +269,8 @@ export function SearchBox() {
                         <div className="max-h-80 overflow-y-auto">
                             {visibleResults.map((result) => {
                                 const Icon =
-                                    result.type === "train"
+                                    result.type === "train" ||
+                                    result.type === "long-distance-train"
                                         ? TrainFront
                                         : GitCommitHorizontal;
                                 const delayLabel =
@@ -244,11 +286,25 @@ export function SearchBox() {
                                         onClick={() => {
                                             if (result.type === "train") {
                                                 setCurrentStationTitle(null);
+                                                setSelectedLongDistanceTrain(null);
                                                 setCurrentTrain(result.train);
                                                 return;
                                             }
 
+                                            if (
+                                                result.type ===
+                                                "long-distance-train"
+                                            ) {
+                                                setCurrentStationTitle(null);
+                                                setCurrentTrain(null);
+                                                setSelectedLongDistanceTrain(
+                                                    result.train
+                                                );
+                                                return;
+                                            }
+
                                             setCurrentTrain(null);
+                                            setSelectedLongDistanceTrain(null);
                                             setCurrentStationTitle(
                                                 result.stationTitle
                                             );

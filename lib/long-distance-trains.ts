@@ -517,6 +517,8 @@ const RZD_ROUTE_NUMBER_SUFFIXES: Record<string, string> = {
   YE: "EI",
   YA: "JA",
   QI: "YJ",
+  ZH: "JI",
+  Ж: "JI",
   A: "AJ",
   S: "SJ",
   U: "UJ",
@@ -548,10 +550,6 @@ export function normalizeLongDistanceRouteRequestNumber(number: string): string 
     ([left], [right]) => right.length - left.length,
   )
 
-  if (trimmed.endsWith("J")) {
-    return trimmed
-  }
-
   for (const [sourceSuffix, rzdSuffix] of suffixes) {
     if (trimmed.endsWith(rzdSuffix)) {
       return trimmed
@@ -566,6 +564,15 @@ export function normalizeLongDistanceRouteRequestNumber(number: string): string 
     return trimmed
   }
 
+  if (trimmed.endsWith("J")) {
+    const beforeJ = trimmed.at(-2)
+    if (beforeJ && RZD_ROUTE_NUMBER_SINGLE_CONSONANTS.has(beforeJ)) {
+      return trimmed
+    }
+
+    return `${trimmed}I`
+  }
+
   const lastLetter = trimmed.at(-1)
   if (lastLetter && RZD_ROUTE_NUMBER_SINGLE_CONSONANTS.has(lastLetter)) {
     return `${trimmed}J`
@@ -573,3 +580,4 @@ export function normalizeLongDistanceRouteRequestNumber(number: string): string 
 
   return trimmed
 }
+

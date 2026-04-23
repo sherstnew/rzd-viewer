@@ -2,11 +2,12 @@ import { NextRequest, NextResponse } from "next/server"
 
 const RAILWAYZ_BASE_URL = "https://railwayz.info"
 const RAILWAYZ_SEARCH_URLS = [
-  `${RAILWAYZ_BASE_URL}/photolines/search/`,
   "http://railwayz.info/photolines/search/",
+  `${RAILWAYZ_BASE_URL}/photolines/search/`,
 ]
 const MAX_PHOTOS = 30
-const RAILWAYZ_REQUEST_TIMEOUT_MS = 8000
+const RAILWAYZ_REQUEST_TIMEOUT_MS = 15000
+const RAILWAYZ_MAX_ATTEMPTS_PER_URL = 2
 
 type StationPhotoItem = {
   thumbUrl: string
@@ -139,29 +140,60 @@ function describeFetchError(error: unknown): string {
   return `${error.name}: ${error.message}${causeCode}${causeReason}`
 }
 
+function isTimeoutError(error: unknown): boolean {
+  return error instanceof Error && error.name === "TimeoutError"
+}
+
+function getFetchErrorCode(error: unknown): string | null {
+  if (!(error instanceof Error)) {
+    return null
+  }
+
+  const cause = error.cause as { code?: unknown } | undefined
+  return typeof cause?.code === "string" ? cause.code : null
+}
+
+function shouldRetryFetchError(error: unknown): boolean {
+  if (isTimeoutError(error)) {
+    return true
+  }
+
+  const code = getFetchErrorCode(error)
+  if (!code) {
+    return false
+  }
+
+  return code === "ECONNRESET" || code === "ETIMEDOUT"
+}
+
 async function fetchRailwayzSearch(searchBody: string): Promise<Response | null> {
   const errors: string[] = []
 
   for (const url of RAILWAYZ_SEARCH_URLS) {
-    try {
-      const response = await fetch(url, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/x-www-form-urlencoded",
-          "User-Agent": "Mozilla/5.0 (compatible; rzd-viewer/1.0)",
-        },
-        body: searchBody,
-        cache: "no-store",
-        signal: AbortSignal.timeout(RAILWAYZ_REQUEST_TIMEOUT_MS),
-      })
+    for (let attempt = 1; attempt <= RAILWAYZ_MAX_ATTEMPTS_PER_URL; attempt += 1) {
+      try {
+        const response = await fetch(url, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/x-www-form-urlencoded",
+            "User-Agent": "Mozilla/5.0 (compatible; rzd-viewer/1.0)",
+          },
+          body: searchBody,
+          cache: "no-store",
+          signal: AbortSignal.timeout(RAILWAYZ_REQUEST_TIMEOUT_MS),
+        })
 
-      if (response.ok) {
-        return response
+        if (response.ok) {
+          return response
+        }
+
+        errors.push(`${url} (attempt ${attempt}): HTTP ${response.status}`)
+      } catch (error) {
+        errors.push(`${url} (attempt ${attempt}): ${describeFetchError(error)}`)
+        if (!shouldRetryFetchError(error)) {
+          break
+        }
       }
-
-      errors.push(`${url}: HTTP ${response.status}`)
-    } catch (error) {
-      errors.push(`${url}: ${describeFetchError(error)}`)
     }
   }
 
