@@ -180,6 +180,12 @@
   color: var(--accent-foreground);
 }
 
+.rzd-map .openrailwaymap-muted-layer,
+.rzd-map .openrailwaymap-muted-layer img,
+.rzd-map img.openrailwaymap-muted-layer {
+  filter: grayscale(1) saturate(0) brightness(0.78) contrast(0.9);
+}
+
 .rzd-map .leaflet-control-zoom a:active {
   transform: scale(0.96);
 }

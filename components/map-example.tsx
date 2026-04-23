@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FeatureCollection, GeoJsonObject, LineString } from "geojson"
@@ -19,13 +19,26 @@ import { createRouteEngine } from "@/lib/route-engine"
 import { resolveTrainProgressByStops } from "@/lib/train-progress"
 import { findTrains, Train, TrainWithCoordinates } from "@/lib/trains"
 import { formatTrainDelay, getTrainDelayLabels } from "@/lib/train-delays"
+import type { LongDistanceRoute, LongDistanceTrainObject } from "@/lib/long-distance-trains"
+import {
+  createRussiaGeoFilter,
+  isLongDistancePointInRussia,
+  longDistanceTrainKey,
+  normalizeLongDistanceRouteRequestNumber,
+  normalizeLongDistanceLiveObjects,
+  type RussiaGeoFilter,
+  type RussiaRegionsGeoJson,
+  type YandexLiveObjectsPayload,
+} from "@/lib/long-distance-trains"
 import stationsData from "@/jsons/stations.json"
 import moscowBigGeoJson from "@/jsons/moscow-big.json"
 import { getNow } from "@/lib/runtime-mode"
 import { TrainSidebar } from "./train-sidebar"
+import { LongDistanceTrainSidebar } from "./long-distance-train-sidebar"
 import { StationSidebar, type StationPhotoItem } from "./station-sidebar"
 import { useCurrentTrainStore } from "@/stores/currentTrainStore"
 import { useTrainsStore } from "@/stores/trainsStore"
+import { Switch } from "@/components/ui/switch"
 
 const moscowCenter: [number, number] = [55.7558, 37.6173]
 
@@ -99,6 +112,31 @@ type RouteProgressOverlay = {
   passedRoute: RouteGeoJson | null
   upcomingRoute: RouteGeoJson | null
 }
+type LongDistanceProgressOverlay = {
+  passedRoute: RouteGeoJson | null
+  upcomingRoute: RouteGeoJson | null
+}
+type LongDistanceViewport = {
+  center: string
+  span: string
+  zoom: number
+}
+
+const LONG_DISTANCE_TRAINS_CACHE_TTL_MS = 60_000
+const LONG_DISTANCE_TRAINS_DEBOUNCE_MS = 350
+const LONG_DISTANCE_VIEWPORT_PRECISION = 3
+const YANDEX_LIVE_OBJECTS_URL = "https://rasp.yandex.ru/maps/train/objects"
+const OPENRAILWAYMAP_TILE_URL = "https://tiles.openrailwaymap.org/standard/{z}/{x}/{y}.png"
+const OPENRAILWAYMAP_ATTRIBUTION =
+  '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>, Style: <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA 2.0</a> <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> and OpenStreetMap'
+
+const longDistanceTrainsCache = new Map<
+  string,
+  {
+    fetchedAt: number
+    trains: LongDistanceTrainObject[]
+  }
+>()
 
 const TRAIN_ICON_SIZE_PX = 25
 const TRAIN_ICON_MIN_SIZE_PX = 10
@@ -539,6 +577,22 @@ function createTrainIconWithSelection(
   })
 }
 
+function createLongDistanceTrainIcon(sizePx: number, isSelected: boolean): L.DivIcon {
+  const markerSize = Math.round(sizePx * 0.86)
+  const logoWidth = Math.round(markerSize * 0.62)
+  const borderWidth = Math.max(1, Math.round(markerSize * 0.08))
+  const selectedShadow = isSelected
+    ? "box-shadow:0 0 0 3px rgba(228,45,36,.26),0 8px 18px rgba(0,0,0,.28);"
+    : "box-shadow:0 6px 14px rgba(0,0,0,.22);"
+
+  return L.divIcon({
+    className: "train-marker-wrapper",
+    iconSize: [sizePx, sizePx],
+    iconAnchor: [sizePx / 2, sizePx / 2],
+    html: `<div style="width:${sizePx}px;height:${sizePx}px;display:flex;align-items:center;justify-content:center;"><div style="width:${markerSize}px;height:${markerSize}px;border:${borderWidth}px solid ${isSelected ? "#E42D24" : "#202124"};border-radius:999px;background:#fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box;${selectedShadow}"><img src="/leaflet/rzd.svg" alt="РЖД" style="width:${logoWidth}px;height:auto;object-fit:contain;" /></div></div>`,
+  })
+}
+
 function trainIconSizeByZoom(zoom: number): number {
   const baselineZoom = 10
   const size = TRAIN_ICON_SIZE_PX + (zoom - baselineZoom) * 2.4
@@ -962,6 +1016,43 @@ function buildTrainRouteProgressOverlay(
   }
 }
 
+function buildLongDistanceRouteProgressOverlay(route: LongDistanceRoute | null): LongDistanceProgressOverlay | null {
+  if (!route || route.stations.length < 2) {
+    return null
+  }
+
+  const routeCoordinates = route.stations.map((station) => station.coordinates)
+  const lastTraversedIndex = route.stations.reduce(
+    (lastIndex, station, index) => (station.traversed ? index : lastIndex),
+    -1,
+  )
+
+  if (lastTraversedIndex < 0) {
+    return {
+      passedRoute: null,
+      upcomingRoute: buildOverlayRoute("long-distance-upcoming", routeCoordinates),
+    }
+  }
+
+  if (lastTraversedIndex >= routeCoordinates.length - 1) {
+    return {
+      passedRoute: buildOverlayRoute("long-distance-passed", routeCoordinates),
+      upcomingRoute: null,
+    }
+  }
+
+  return {
+    passedRoute: buildOverlayRoute(
+      "long-distance-passed",
+      routeCoordinates.slice(0, lastTraversedIndex + 1),
+    ),
+    upcomingRoute: buildOverlayRoute(
+      "long-distance-upcoming",
+      routeCoordinates.slice(lastTraversedIndex),
+    ),
+  }
+}
+
 function buildAutoStationsForRoute(routeId: RouteId, routeData: RouteGeoJson | null): RouteStation[] {
   if (!routeData) {
     return []
@@ -1134,6 +1225,256 @@ function MapZoomWatcher({ onZoomChange }: { onZoomChange: (zoom: number) => void
   return null
 }
 
+function getLongDistanceViewport(map: L.Map): LongDistanceViewport {
+  const center = map.getCenter()
+  const bounds = map.getBounds()
+  const longitudeSpan = Math.abs(bounds.getEast() - bounds.getWest())
+  const latitudeSpan = Math.abs(bounds.getNorth() - bounds.getSouth())
+
+  return {
+    center: `${center.lng.toFixed(LONG_DISTANCE_VIEWPORT_PRECISION)},${center.lat.toFixed(LONG_DISTANCE_VIEWPORT_PRECISION)}`,
+    span: `${longitudeSpan.toFixed(LONG_DISTANCE_VIEWPORT_PRECISION)},${latitudeSpan.toFixed(LONG_DISTANCE_VIEWPORT_PRECISION)}`,
+    zoom: Math.round(map.getZoom()),
+  }
+}
+
+function longDistanceViewportKey(viewport: LongDistanceViewport): string {
+  return `${viewport.center}|${viewport.span}|${viewport.zoom}`
+}
+
+function readLongDistanceTrainsCache(key: string): LongDistanceTrainObject[] | null {
+  const cached = longDistanceTrainsCache.get(key)
+  if (!cached) {
+    return null
+  }
+
+  if (Date.now() - cached.fetchedAt > LONG_DISTANCE_TRAINS_CACHE_TTL_MS) {
+    longDistanceTrainsCache.delete(key)
+    return null
+  }
+
+  return cached.trains
+}
+
+function writeLongDistanceTrainsCache(key: string, trains: LongDistanceTrainObject[]) {
+  longDistanceTrainsCache.set(key, {
+    fetchedAt: Date.now(),
+    trains,
+  })
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException
+    ? error.name === "AbortError"
+    : typeof error === "object" &&
+        error !== null &&
+        "name" in error &&
+        (error as { name?: unknown }).name === "AbortError"
+}
+
+async function fetchLongDistanceObjects(
+  viewport: LongDistanceViewport,
+  signal: AbortSignal,
+): Promise<LongDistanceTrainObject[]> {
+  const params = new URLSearchParams({
+    center: viewport.center,
+    span: viewport.span,
+    zoom: String(Math.round(viewport.zoom)),
+  })
+  const response = await fetch(`/api/trains/live-objects?${params.toString()}`, {
+    cache: "no-store",
+    signal,
+  })
+
+  if (!response.ok) {
+    const errorPayload = (await response.json().catch(() => null)) as
+      | { error?: string; details?: string }
+      | null
+    throw new Error(
+      errorPayload?.details ??
+        errorPayload?.error ??
+        `Live objects request failed with status ${response.status}`,
+    )
+  }
+
+  const payload = (await response.json()) as { trains?: LongDistanceTrainObject[] }
+  return Array.isArray(payload.trains) ? payload.trains : []
+}
+
+function fetchLongDistanceObjectsWithJsonpFallback(
+  viewport: LongDistanceViewport,
+  signal: AbortSignal,
+): Promise<LongDistanceTrainObject[]> {
+  return new Promise((resolve, reject) => {
+    if (signal.aborted) {
+      reject(new DOMException("Aborted", "AbortError"))
+      return
+    }
+
+    const callbackName = `__rzdLiveObjects_${Date.now()}_${Math.random().toString(36).slice(2)}`
+    const windowWithCallback = window as typeof window & Record<string, (payload: YandexLiveObjectsPayload) => void>
+    const script = document.createElement("script")
+    const url = new URL(YANDEX_LIVE_OBJECTS_URL)
+    const timeoutId = window.setTimeout(() => {
+      cleanup()
+      reject(new Error("Yandex live objects JSONP request timed out"))
+    }, 10_000)
+
+    function cleanup() {
+      window.clearTimeout(timeoutId)
+      signal.removeEventListener("abort", handleAbort)
+      delete windowWithCallback[callbackName]
+      script.remove()
+    }
+
+    function handleAbort() {
+      cleanup()
+      reject(new DOMException("Aborted", "AbortError"))
+    }
+
+    windowWithCallback[callbackName] = (payload) => {
+      cleanup()
+      resolve(normalizeLongDistanceLiveObjects(payload))
+    }
+
+    url.searchParams.set("callback", callbackName)
+    url.searchParams.set("number", "")
+    url.searchParams.set("type", "all")
+    url.searchParams.set("station", "")
+    url.searchParams.set("city", "")
+    url.searchParams.set("center", viewport.center)
+    url.searchParams.set("span", viewport.span)
+    url.searchParams.set("zoom", String(Math.round(viewport.zoom)))
+    url.searchParams.set("_", String(Date.now()))
+
+    script.async = true
+    script.src = url.toString()
+    script.onerror = () => {
+      cleanup()
+      reject(new Error("Yandex live objects JSONP fallback failed"))
+    }
+    signal.addEventListener("abort", handleAbort, { once: true })
+    document.head.appendChild(script)
+  })
+}
+
+function LongDistanceTrainLoader({
+  enabled,
+  onError,
+  onTrainsChange,
+}: {
+  enabled: boolean
+  onError: (message: string | null) => void
+  onTrainsChange: (trains: LongDistanceTrainObject[]) => void
+}) {
+  const abortControllerRef = useRef<AbortController | null>(null)
+  const debounceTimeoutRef = useRef<number | null>(null)
+  const lastRequestedViewportKeyRef = useRef<string | null>(null)
+
+  const loadTrains = useCallback(
+    async (map: L.Map) => {
+      if (!enabled) {
+        return
+      }
+
+      const viewport = getLongDistanceViewport(map)
+      const viewportKey = longDistanceViewportKey(viewport)
+      const cachedTrains = readLongDistanceTrainsCache(viewportKey)
+      if (cachedTrains) {
+        lastRequestedViewportKeyRef.current = viewportKey
+        onTrainsChange(cachedTrains)
+        onError(null)
+        return
+      }
+
+      if (lastRequestedViewportKeyRef.current === viewportKey) {
+        return
+      }
+
+      lastRequestedViewportKeyRef.current = viewportKey
+      abortControllerRef.current?.abort()
+      const controller = new AbortController()
+      abortControllerRef.current = controller
+
+      try {
+        let trains: LongDistanceTrainObject[]
+        try {
+          trains = await fetchLongDistanceObjects(viewport, controller.signal)
+        } catch (serverError) {
+          if (isAbortError(serverError)) {
+            return
+          }
+          trains = await fetchLongDistanceObjectsWithJsonpFallback(viewport, controller.signal)
+        }
+        writeLongDistanceTrainsCache(viewportKey, trains)
+        onTrainsChange(trains)
+        onError(null)
+      } catch (error) {
+        if (isAbortError(error)) {
+          return
+        }
+
+        onTrainsChange([])
+        onError(error instanceof Error ? error.message : "Не удалось загрузить дальние поезда")
+      }
+    },
+    [enabled, onError, onTrainsChange],
+  )
+
+  const scheduleLoadTrains = useCallback(
+    (map: L.Map) => {
+      if (!enabled) {
+        return
+      }
+
+      if (debounceTimeoutRef.current !== null) {
+        window.clearTimeout(debounceTimeoutRef.current)
+      }
+
+      debounceTimeoutRef.current = window.setTimeout(() => {
+        debounceTimeoutRef.current = null
+        void loadTrains(map)
+      }, LONG_DISTANCE_TRAINS_DEBOUNCE_MS)
+    },
+    [enabled, loadTrains],
+  )
+
+  const map = useMapEvents({
+    moveend(event) {
+      scheduleLoadTrains(event.target)
+    },
+    zoomend(event) {
+      scheduleLoadTrains(event.target)
+    },
+  })
+
+  useEffect(() => {
+    if (!enabled) {
+      abortControllerRef.current?.abort()
+      lastRequestedViewportKeyRef.current = null
+      if (debounceTimeoutRef.current !== null) {
+        window.clearTimeout(debounceTimeoutRef.current)
+        debounceTimeoutRef.current = null
+      }
+      onTrainsChange([])
+      onError(null)
+      return
+    }
+
+    scheduleLoadTrains(map)
+
+    return () => {
+      abortControllerRef.current?.abort()
+      if (debounceTimeoutRef.current !== null) {
+        window.clearTimeout(debounceTimeoutRef.current)
+        debounceTimeoutRef.current = null
+      }
+    }
+  }, [enabled, map, onError, onTrainsChange, scheduleLoadTrains])
+
+  return null
+}
+
 function MapControlPositioner() {
   const map = useMap()
 
@@ -1256,12 +1597,51 @@ function ZoomToSelectedTrain({
   return null
 }
 
+function ZoomToLongDistanceRoute({
+  route,
+  routeKey,
+}: {
+  route: LongDistanceRoute | null
+  routeKey: string | null
+}) {
+  const map = useMap()
+  const lastZoomedRouteKeyRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    if (!route || !routeKey || lastZoomedRouteKeyRef.current === routeKey) {
+      return
+    }
+
+    const bounds = L.geoJSON(route.routeGeoJson).getBounds()
+    if (!bounds.isValid()) {
+      return
+    }
+
+    lastZoomedRouteKeyRef.current = routeKey
+    map.fitBounds(bounds, {
+      animate: true,
+      duration: 0.45,
+      padding: [36, 36],
+    })
+  }, [map, route, routeKey])
+
+  return null
+}
+
 export function MapExample() {
   const [currentZoom, setCurrentZoom] = useState(10)
   const [clockTimestamp, setClockTimestamp] = useState(() => getNow("real").getTime())
   const [currentStation, setCurrentStation] = useState<RouteStation | null>(null)
   const [stationPhotos, setStationPhotos] = useState<StationPhotoItem[]>([])
   const [isPhotosLoading, setIsPhotosLoading] = useState(false)
+  const [showLongDistanceTrains, setShowLongDistanceTrains] = useState(false)
+  const [longDistanceTrains, setLongDistanceTrains] = useState<LongDistanceTrainObject[]>([])
+  const [longDistanceTrainsError, setLongDistanceTrainsError] = useState<string | null>(null)
+  const [selectedLongDistanceTrain, setSelectedLongDistanceTrain] = useState<LongDistanceTrainObject | null>(null)
+  const [selectedLongDistanceRoute, setSelectedLongDistanceRoute] = useState<LongDistanceRoute | null>(null)
+  const [longDistanceRouteError, setLongDistanceRouteError] = useState<string | null>(null)
+  const [isLongDistanceRouteLoading, setIsLongDistanceRouteLoading] = useState(false)
+  const [russiaGeoFilter, setRussiaGeoFilter] = useState<RussiaGeoFilter | null>(null)
   const stationClickLockUntilRef = useRef(0)
   const showPermanentStationLabels = currentZoom >= STATION_LABEL_ZOOM_THRESHOLD
   const trainIconSize = trainIconSizeByZoom(currentZoom)
@@ -1270,6 +1650,12 @@ export function MapExample() {
     setCurrentStation(null)
     setStationPhotos([])
     setIsPhotosLoading(false)
+  }, [])
+  const closeLongDistanceSidebar = useCallback(() => {
+    setSelectedLongDistanceTrain(null)
+    setSelectedLongDistanceRoute(null)
+    setLongDistanceRouteError(null)
+    setIsLongDistanceRouteLoading(false)
   }, [])
 
   const shouldIgnoreMapClick = useCallback(() => {
@@ -1293,6 +1679,24 @@ export function MapExample() {
     error: trainsError,
     threadsError,
   } = useTrainsStore()
+
+  useEffect(() => {
+    if (showLongDistanceTrains) {
+      setCurrentTrain(null)
+      setCurrentStationTitle(null)
+      closeStationSidebar()
+      return
+    }
+
+    closeLongDistanceSidebar()
+    setLongDistanceTrainsError(null)
+  }, [
+    closeLongDistanceSidebar,
+    closeStationSidebar,
+    setCurrentStationTitle,
+    setCurrentTrain,
+    showLongDistanceTrains,
+  ])
 
   const { routeDataById, routeError } = useMemo(() => {
     try {
@@ -1392,6 +1796,20 @@ export function MapExample() {
   const selectedTrainRouteOverlay = useMemo(
     () => buildTrainRouteProgressOverlay(selectedTrainForZoom ?? currentTrain, routeDataById, clockTimestamp),
     [clockTimestamp, currentTrain, routeDataById, selectedTrainForZoom],
+  )
+  const selectedLongDistanceTrainKey = selectedLongDistanceTrain
+    ? longDistanceTrainKey(selectedLongDistanceTrain)
+    : null
+  const selectedLongDistanceRouteOverlay = useMemo(
+    () => buildLongDistanceRouteProgressOverlay(selectedLongDistanceRoute),
+    [selectedLongDistanceRoute],
+  )
+  const visibleLongDistanceTrains = useMemo(
+    () =>
+      longDistanceTrains.filter((train) =>
+        (russiaGeoFilter ?? isLongDistancePointInRussia)(train.longitude, train.latitude),
+      ),
+    [longDistanceTrains, russiaGeoFilter],
   )
 
   const routeStationsById = useMemo((): RouteStationsById => {
@@ -1518,6 +1936,69 @@ export function MapExample() {
   }, [currentStation, fetchThreadsForUids, upcomingStationTrainUids])
 
   useEffect(() => {
+    if (!selectedLongDistanceTrain) {
+      return
+    }
+
+    setSelectedLongDistanceRoute(null)
+
+    if (!selectedLongDistanceTrain.date) {
+      setLongDistanceRouteError("Нет даты отправления для запроса маршрута")
+      setIsLongDistanceRouteLoading(false)
+      return
+    }
+
+    const controller = new AbortController()
+    setIsLongDistanceRouteLoading(true)
+    setLongDistanceRouteError(null)
+
+    const params = new URLSearchParams({
+      number: normalizeLongDistanceRouteRequestNumber(selectedLongDistanceTrain.number),
+      date: selectedLongDistanceTrain.date,
+    })
+
+    void fetch(`/api/trains/long-distance-route?${params.toString()}`, {
+      cache: "no-store",
+      signal: controller.signal,
+    })
+      .then(async (response) => {
+        if (!response.ok) {
+          const errorPayload = (await response.json().catch(() => null)) as
+            | { error?: string; details?: string }
+            | null
+          throw new Error(
+            errorPayload?.details ??
+              errorPayload?.error ??
+              `Request failed with status ${response.status}`,
+          )
+        }
+
+        return (await response.json()) as LongDistanceRoute
+      })
+      .then((route) => {
+        setSelectedLongDistanceRoute(route)
+      })
+      .catch((error: unknown) => {
+        if (isAbortError(error)) {
+          return
+        }
+
+        setLongDistanceRouteError(
+          error instanceof Error ? error.message : "Не удалось загрузить маршрут дальнего поезда",
+        )
+      })
+      .finally(() => {
+        if (!controller.signal.aborted) {
+          setIsLongDistanceRouteLoading(false)
+        }
+      })
+
+    return () => {
+      controller.abort()
+    }
+  }, [selectedLongDistanceTrain])
+
+  useEffect(() => {
     if (!currentStation?.esrCode) {
       return
     }
@@ -1609,22 +2090,37 @@ export function MapExample() {
       {routeError ? <p className="text-sm text-destructive">{routeError}</p> : null}
       {trainsError ? <p className="text-sm text-destructive">{trainsError}</p> : null}
       {threadsError ? <p className="text-sm text-destructive">{threadsError}</p> : null}
-      <TrainSidebar />
-      <StationSidebar
-        station={
-          currentStation
-            ? {
-                title: currentStation.title,
-                direction: currentStation.direction,
-                esrCode: currentStation.esrCode,
-              }
-            : null
-        }
-        schedule={stationSchedule}
-        photos={currentStation?.esrCode ? stationPhotos : []}
-        isPhotosLoading={Boolean(currentStation?.esrCode) && isPhotosLoading}
-        onClose={closeStationSidebar}
-      />
+      {longDistanceTrainsError ? (
+        <p className="text-sm text-destructive">Не удалось загрузить дальние поезда: {longDistanceTrainsError}</p>
+      ) : null}
+      {!showLongDistanceTrains ? (
+        <>
+          <TrainSidebar />
+          <StationSidebar
+            station={
+              currentStation
+                ? {
+                    title: currentStation.title,
+                    direction: currentStation.direction,
+                    esrCode: currentStation.esrCode,
+                  }
+                : null
+            }
+            schedule={stationSchedule}
+            photos={currentStation?.esrCode ? stationPhotos : []}
+            isPhotosLoading={Boolean(currentStation?.esrCode) && isPhotosLoading}
+            onClose={closeStationSidebar}
+          />
+        </>
+      ) : (
+        <LongDistanceTrainSidebar
+          train={selectedLongDistanceTrain}
+          route={selectedLongDistanceRoute}
+          isLoading={isLongDistanceRouteLoading}
+          error={longDistanceRouteError}
+          onClose={closeLongDistanceSidebar}
+        />
+      )}
       <MapContainer
         center={moscowCenter}
         zoom={10}
@@ -1632,12 +2128,19 @@ export function MapExample() {
         scrollWheelZoom
       >
         <MapControlPositioner />
-        <PopupCloserOnSidebarClose isSidebarOpen={Boolean(currentTrain || currentStation)} />
+        <PopupCloserOnSidebarClose
+          isSidebarOpen={Boolean(currentTrain || currentStation || selectedLongDistanceTrain)}
+        />
         <StationSidebarMapClickCloser
           onCloseStationSidebar={closeStationSidebar}
           shouldIgnoreMapClick={shouldIgnoreMapClick}
         />
         <MapZoomWatcher onZoomChange={setCurrentZoom} />
+        <LongDistanceTrainLoader
+          enabled={showLongDistanceTrains}
+          onError={setLongDistanceTrainsError}
+          onTrainsChange={setLongDistanceTrains}
+        />
         <ZoomToSelectedStation
           station={currentStation}
           stationTitle={currentStationTitle}
@@ -1648,11 +2151,39 @@ export function MapExample() {
           trainKey={currentTrainKey}
           routeDataById={routeDataById}
         />
+        <ZoomToLongDistanceRoute
+          route={selectedLongDistanceRoute}
+          routeKey={selectedLongDistanceTrainKey}
+        />
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
           url={`https://{s}.basemaps.cartocdn.com/${tileTheme}_all/{z}/{x}/{y}{r}.png`}
         />
-        {builtRoutes.length > 0 ? (
+        <TileLayer
+          attribution={OPENRAILWAYMAP_ATTRIBUTION}
+          className="openrailwaymap-muted-layer"
+          opacity={0.72}
+          url={OPENRAILWAYMAP_TILE_URL}
+          zIndex={320}
+        />
+        <div className="leaflet-top leaflet-left z-1000">
+          <div className="leaflet-control mt-3 ml-3">
+            <label className="flex cursor-pointer items-center gap-3 rounded-md border border-border bg-card/95 px-3 py-2 text-sm font-medium shadow-md backdrop-blur transition hover:bg-accent">
+              <Switch
+                checked={showLongDistanceTrains}
+                onCheckedChange={setShowLongDistanceTrains}
+                aria-label="Показать дальние поезда"
+              />
+              <span>Дальние поезда</span>
+              {showLongDistanceTrains && visibleLongDistanceTrains.length > 0 ? (
+                <span className="rounded-sm bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
+                  {visibleLongDistanceTrains.length}
+                </span>
+              ) : null}
+            </label>
+          </div>
+        </div>
+        {!showLongDistanceTrains && builtRoutes.length > 0 ? (
           <>
             {ROUTE_DEFINITIONS.map((routeDefinition) => {
               const route = routeDataById[routeDefinition.id]
@@ -1715,7 +2246,80 @@ export function MapExample() {
           </>
         ) : null}
 
-        {routeStations.map((station) => (
+        {showLongDistanceTrains && selectedLongDistanceRoute ? (
+          <>
+            <GeoJSON
+              key={`${selectedLongDistanceTrainKey ?? "long-distance"}-route-shadow`}
+              data={selectedLongDistanceRoute.routeGeoJson}
+              style={{
+                color: "#202124",
+                weight: 8,
+                opacity: 0.62,
+                lineCap: "round",
+                lineJoin: "round",
+              }}
+            />
+            {selectedLongDistanceRouteOverlay?.upcomingRoute ? (
+              <GeoJSON
+                key={`${selectedLongDistanceTrainKey ?? "long-distance"}-route-upcoming`}
+                data={selectedLongDistanceRouteOverlay.upcomingRoute}
+                style={{
+                  color: "#E42D24",
+                  weight: 5,
+                  opacity: 0.96,
+                  lineCap: "round",
+                  lineJoin: "round",
+                }}
+              />
+            ) : null}
+            {selectedLongDistanceRouteOverlay?.passedRoute ? (
+              <GeoJSON
+                key={`${selectedLongDistanceTrainKey ?? "long-distance"}-route-passed`}
+                data={selectedLongDistanceRouteOverlay.passedRoute}
+                style={{
+                  color: "#7f1d1d",
+                  weight: 5,
+                  opacity: 0.9,
+                  lineCap: "round",
+                  lineJoin: "round",
+                }}
+              />
+            ) : null}
+            <GeoJSON
+              key={`${selectedLongDistanceTrainKey ?? "long-distance"}-route-sleepers`}
+              data={selectedLongDistanceRoute.routeGeoJson}
+              style={{
+                color: "#ffffff",
+                weight: 2,
+                opacity: 0.9,
+                dashArray: "1 13",
+                lineCap: "butt",
+              }}
+            />
+            {selectedLongDistanceRoute.stations.map((station, index) => {
+              const [longitude, latitude] = station.coordinates
+              return (
+                <CircleMarker
+                  key={`${station.id}-${index}-long-distance-station`}
+                  center={[latitude, longitude]}
+                  radius={index === 0 || index === selectedLongDistanceRoute.stations.length - 1 ? 5 : 3}
+                  pathOptions={{
+                    color: station.traversed ? "#7f1d1d" : "#E42D24",
+                    fillColor: "#ffffff",
+                    fillOpacity: 1,
+                    weight: 2,
+                  }}
+                >
+                  <Tooltip direction="top" offset={[0, -6]} opacity={1}>
+                    {station.name}
+                  </Tooltip>
+                </CircleMarker>
+              )
+            })}
+          </>
+        ) : null}
+
+        {!showLongDistanceTrains && routeStations.map((station) => (
           <CircleMarker
             key={`${station.routeId}-${station.code}`}
             center={(() => {
@@ -1757,7 +2361,7 @@ export function MapExample() {
           </CircleMarker>
         ))}
 
-        {trains.map((train) => {
+        {!showLongDistanceTrains && trains.map((train) => {
           const trainKey = trainInstanceKey(train)
           const routeId = train.mcd_route_id ?? "mcd2"
           const routeData = routeDataById[routeId] ?? null
@@ -1812,6 +2416,55 @@ export function MapExample() {
             </Marker>
           )
         })}
+        {showLongDistanceTrains
+          ? visibleLongDistanceTrains.map((train) => {
+              const trainKey = longDistanceTrainKey(train)
+              const isSelected = selectedLongDistanceTrainKey === trainKey
+
+              return (
+                <Marker
+                  key={train.id}
+                  position={[train.latitude, train.longitude]}
+                  icon={createLongDistanceTrainIcon(trainIconSize, isSelected)}
+                  zIndexOffset={isSelected ? 1000 : 500}
+                  eventHandlers={{
+                    click: () => {
+                      closeStationSidebar()
+                      setCurrentStationTitle(null)
+                      setCurrentTrain(null)
+                      setSelectedLongDistanceTrain(train)
+                    },
+                    popupclose: () => {
+                      if (selectedLongDistanceTrainKey === trainKey) {
+                        closeLongDistanceSidebar()
+                      }
+                    },
+                  }}
+                >
+                  <Tooltip direction="top" offset={[0, -6]} opacity={1}>
+                    {normalizeLongDistanceRouteRequestNumber(train.number)}
+                  </Tooltip>
+                  <Popup>
+                    <div>
+                      <div>
+                        Поезд{" "}
+                        {selectedLongDistanceRoute?.number && isSelected
+                          ? selectedLongDistanceRoute.number
+                          : normalizeLongDistanceRouteRequestNumber(train.number)}
+                      </div>
+                      {isSelected && selectedLongDistanceRoute ? (
+                        <div className="text-sm text-muted-foreground">
+                          {selectedLongDistanceRoute.directionLabel}
+                        </div>
+                      ) : train.date ? (
+                        <div className="text-sm text-muted-foreground">Дата: {train.date}</div>
+                      ) : null}
+                    </div>
+                  </Popup>
+                </Marker>
+              )
+            })
+          : null}
       </MapContainer>
     </div>
   )
