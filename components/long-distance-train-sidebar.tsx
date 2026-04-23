@@ -47,7 +47,7 @@ export function LongDistanceTrainSidebar({
   onClose,
 }: LongDistanceTrainSidebarProps) {
   const isOpen = Boolean(train)
-  const routeTitle = route?.directionLabel ?? "Маршрут загружается"
+  const routeTitle = route?.directionLabel ?? "Маршрут загружается..."
   const trainNumber = route?.number ?? train?.number ?? ""
   const stations = route?.stations ?? []
   const traversedCount = stations.filter((station) => station.traversed).length

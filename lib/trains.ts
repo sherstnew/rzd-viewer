@@ -1,4 +1,4 @@
-﻿import stationsData from "@/jsons/stations.json"
+import stationsData from "@/public/assets/stations.json"
 
 type Nullable<T> = T | null
 export type McdRouteId =
@@ -247,8 +247,6 @@ export function findTrains(time: Date, trainsData: TrainsData): TrainWithCoordin
       return interpolateFromTerminals(train)
     }
 
-    // If the train is currently dwelling at a station (arrival..departure),
-    // keep it visible at that station coordinates.
     for (let i = 0; i < stops.length; i += 1) {
       const stop = stops[i]
       const stationArrivalTime = toTimeMs(stop.arrival)

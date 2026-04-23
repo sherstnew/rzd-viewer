@@ -1,4 +1,4 @@
-﻿"use client"
+"use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import type { FeatureCollection, GeoJsonObject, LineString } from "geojson"
@@ -21,17 +21,14 @@ import { findTrains, Train, TrainWithCoordinates } from "@/lib/trains"
 import { formatTrainDelay, getTrainDelayLabels } from "@/lib/train-delays"
 import type { LongDistanceRoute, LongDistanceTrainObject } from "@/lib/long-distance-trains"
 import {
-  createRussiaGeoFilter,
   isLongDistancePointInRussia,
   longDistanceTrainKey,
   normalizeLongDistanceRouteRequestNumber,
   normalizeLongDistanceLiveObjects,
-  type RussiaGeoFilter,
-  type RussiaRegionsGeoJson,
   type YandexLiveObjectsPayload,
 } from "@/lib/long-distance-trains"
-import stationsData from "@/jsons/stations.json"
-import moscowBigGeoJson from "@/jsons/moscow-big.json"
+import stationsData from "@/public/assets/stations.json"
+import moscowBigGeoJson from "@/public/assets/moscow-big.json"
 import { getNow } from "@/lib/runtime-mode"
 import { TrainSidebar } from "./train-sidebar"
 import { LongDistanceTrainSidebar } from "./long-distance-train-sidebar"
@@ -1638,7 +1635,6 @@ export function MapExample() {
   const [selectedLongDistanceRoute, setSelectedLongDistanceRoute] = useState<LongDistanceRoute | null>(null)
   const [longDistanceRouteError, setLongDistanceRouteError] = useState<string | null>(null)
   const [isLongDistanceRouteLoading, setIsLongDistanceRouteLoading] = useState(false)
-  const [russiaGeoFilter, setRussiaGeoFilter] = useState<RussiaGeoFilter | null>(null)
   const stationClickLockUntilRef = useRef(0)
 
   const {
@@ -1810,9 +1806,9 @@ export function MapExample() {
   const visibleLongDistanceTrains = useMemo(
     () =>
       longDistanceTrains.filter((train) =>
-        (russiaGeoFilter ?? isLongDistancePointInRussia)(train.longitude, train.latitude),
+        isLongDistancePointInRussia(train.longitude, train.latitude),
       ),
-    [longDistanceTrains, russiaGeoFilter],
+    [longDistanceTrains],
   )
 
   useEffect(() => {

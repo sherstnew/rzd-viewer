@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server"
-import stationsData from "@/jsons/stations.json"
+import stationsData from "@/public/assets/stations.json"
 
 const YANDEX_API_BASE = "https://api.rasp.yandex.net/v3.0"
 const YANDEX_BATCH_URL = "https://rasp.yandex.ru/api/batch"

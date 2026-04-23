@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { GitCommitHorizontal, Search, TrainFront } from "lucide-react";
-import stationsData from "@/jsons/stations.json";
+import stationsData from "@/public/assets/stations.json";
+import { formatLongDistanceDate } from "@/lib/long-distance-trains";
 import { getNow } from "@/lib/runtime-mode";
 import { formatTrainDelay } from "@/lib/train-delays";
 import type { Train } from "@/lib/trains";
@@ -110,6 +111,14 @@ function trainKey(train: Train): string {
     return `${train.thread.uid}__${train.departure}__${train.arrival}`;
 }
 
+function longDistanceSubtitle(train: LongDistanceTrainObject): string | null {
+    if (!train.date) {
+        return null;
+    }
+
+    return formatLongDistanceDate(train.date);
+}
+
 function isTrainRunningNow(train: Train, timestamp: number): boolean {
     const departureTimestamp = new Date(train.departure).getTime();
     const arrivalTimestamp = new Date(train.arrival).getTime();
@@ -170,10 +179,7 @@ export function SearchBox() {
                     type: "long-distance-train" as const,
                     key: `long-distance-train-${train.id}-${train.date ?? "no-date"}`,
                     title: train.number,
-                    subtitle:
-                        train.date && train.time
-                            ? `${train.date} ${train.time}`
-                            : train.date ?? train.time ?? null,
+                    subtitle: longDistanceSubtitle(train),
                     train,
                 }));
         }

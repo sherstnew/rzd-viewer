@@ -1,6 +1,7 @@
 ﻿"use client"
 
-import localTrainsData from "@/jsons/local-trains.json"
+import localTrainsData from "@/public/assets/local-trains.json"
+import fallbackTrainsData from "@/public/assets/trains-fallback.json"
 import type { Train, TrainDelayEvent, TrainThreadPayload } from "@/lib/trains"
 import { ClockMode, getDateKey, isDevMode } from "@/lib/runtime-mode"
 import { create } from "zustand"
@@ -189,7 +190,6 @@ function buildSafeLocalStorage(): Storage {
           }),
         )
       } catch {
-        // Persist is best-effort. If even reduced payload can't be saved, ignore.
       }
     },
     clear: () => localStorage.clear(),
@@ -200,8 +200,8 @@ function buildSafeLocalStorage(): Storage {
   }
 }
 
-function readLocalTrains(dayKey: string): Train[] {
-  const segments = extractSegments(localTrainsData)
+function readLocalTrains(payload: unknown, dayKey: string): Train[] {
+  const segments = extractSegments(payload)
   if (!segments) {
     return []
   }
@@ -243,7 +243,7 @@ export const useTrainsStore = create<TrainsStoreState>()(
         set({ isLoading: true, error: null, clockMode: desiredClockMode })
 
         if (devEnabled) {
-          const localSegments = readLocalTrains(today)
+          const localSegments = readLocalTrains(localTrainsData, today)
           set({
             segments: localSegments,
             threadsByUid: {},
@@ -287,7 +287,7 @@ export const useTrainsStore = create<TrainsStoreState>()(
         } catch (error) {
           const message = error instanceof Error ? error.message : "Failed to load train data"
           const fallbackDate = getDateKey("fixed-2026-04-18")
-          const localSegments = readLocalTrains(fallbackDate)
+          const localSegments = readLocalTrains(fallbackTrainsData, fallbackDate)
 
           if (localSegments.length > 0) {
             set({
