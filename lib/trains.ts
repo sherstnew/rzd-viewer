@@ -68,7 +68,6 @@ interface Thread {
   uid: string
   vehicle: Nullable<string>
   transport_subtype: Nullable<TransportSubtype>
-  thread_method_link?: string
   days?: string
   except_days?: string
   stops?: Stop[]

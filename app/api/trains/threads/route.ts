@@ -1,6 +1,5 @@
-﻿import { NextRequest, NextResponse } from "next/server"
-
-const YANDEX_API_BASE = "https://api.rasp.yandex.net/v3.0"
+import { NextRequest, NextResponse } from "next/server"
+import localScheduleData from "@/public/assets/local-trains-schedule.json"
 
 type Nullable<T> = T | null
 
@@ -14,105 +13,79 @@ type ThreadResponsePayload = {
   thread_error: ThreadError | null
 }
 
-type ThreadCacheItem = {
-  date: string
-  payload: ThreadResponsePayload
+type TrainSegmentLike = {
+  thread?: {
+    uid?: unknown
+  }
+  thread_route?: unknown
+  thread_error?: unknown
 }
 
-const threadCacheByUid = new Map<string, ThreadCacheItem>()
-
-function toErrorMessage(error: unknown): string {
-  if (error instanceof Error) {
-    return error.message
+type LocalSchedulePayload = {
+  weekday?: {
+    segments?: unknown
   }
-  return "Unknown error"
+  weekend?: {
+    segments?: unknown
+  }
 }
 
-function getTodayMoscowDate(): string {
-  return new Intl.DateTimeFormat("en-CA", {
-    timeZone: "Europe/Moscow",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-  }).format(new Date())
+const localThreadPayloadByUid = buildLocalThreadPayloadMap()
+
+function toThreadRouteRecord(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null
+  }
+
+  return value as Record<string, unknown>
 }
 
-async function fetchWithRetry(url: URL, retries = 2): Promise<Response> {
-  let attempt = 0
-  let lastError: unknown = null
-
-  while (attempt <= retries) {
-    try {
-      const response = await fetch(url, { method: "GET", cache: "no-store" })
-      if (response.ok) {
-        return response
-      }
-
-      const shouldRetry =
-        response.status === 429 ||
-        response.status === 500 ||
-        response.status === 502 ||
-        response.status === 503 ||
-        response.status === 504
-
-      if (!shouldRetry || attempt === retries) {
-        return response
-      }
-    } catch (error) {
-      lastError = error
-      if (attempt === retries) {
-        throw error
-      }
-    }
-
-    attempt += 1
-    await new Promise((resolve) => setTimeout(resolve, 250 * 2 ** attempt))
+function toThreadError(value: unknown): ThreadError | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null
   }
 
-  if (lastError) {
-    throw lastError
+  const record = value as { status_code?: unknown; message?: unknown }
+  if (typeof record.message !== "string") {
+    return null
   }
 
-  throw new Error("Request failed")
+  return {
+    status_code: typeof record.status_code === "number" ? record.status_code : null,
+    message: record.message,
+  }
 }
 
-async function fetchThreadRoute(
-  apiKey: string,
-  uid: string,
-  date: string,
-): Promise<ThreadResponsePayload> {
-  const url = new URL(`${YANDEX_API_BASE}/thread/`)
-  url.searchParams.set("apikey", apiKey)
-  url.searchParams.set("uid", uid)
-  url.searchParams.set("date", date)
-
-  try {
-    const response = await fetchWithRetry(url)
-    if (!response.ok) {
-      const text = await response.text()
-      return {
-        thread_route: null,
-        thread_error: {
-          status_code: response.status,
-          message: text.slice(0, 300),
-        },
-      }
-    }
-
-    const threadRoute = (await response.json()) as Record<string, unknown>
-    return {
-      thread_route: threadRoute,
-      thread_error: null,
-    }
-  } catch (error) {
-    return {
-      thread_route: null,
-      thread_error: {
-        status_code: null,
-        message: toErrorMessage(error),
-      },
-    }
+function collectSegments(source: unknown): TrainSegmentLike[] {
+  if (!source || typeof source !== "object" || Array.isArray(source)) {
+    return []
   }
+
+  const schedule = source as LocalSchedulePayload
+  const weekdaySegments = Array.isArray(schedule.weekday?.segments) ? schedule.weekday.segments : []
+  const weekendSegments = Array.isArray(schedule.weekend?.segments) ? schedule.weekend.segments : []
+
+  return [...weekdaySegments, ...weekendSegments] as TrainSegmentLike[]
+}
+
+function buildLocalThreadPayloadMap(): Map<string, ThreadResponsePayload> {
+  const map = new Map<string, ThreadResponsePayload>()
+
+  for (const segment of collectSegments(localScheduleData)) {
+    const uid = typeof segment.thread?.uid === "string" ? segment.thread.uid : null
+    if (!uid || map.has(uid)) {
+      continue
+    }
+
+    const route = toThreadRouteRecord(segment.thread_route)
+    const error = toThreadError(segment.thread_error)
+    map.set(uid, {
+      thread_route: route,
+      thread_error: route ? null : error,
+    })
+  }
+
+  return map
 }
 
 function uniqueUids(rawUids: string): string[] {
@@ -133,7 +106,6 @@ function uniqueUids(rawUids: string): string[] {
 
 export async function GET(request: NextRequest) {
   const rawUids = request.nextUrl.searchParams.get("uids") ?? ""
-  const requestedDate = request.nextUrl.searchParams.get("date") ?? getTodayMoscowDate()
   const uids = uniqueUids(rawUids)
 
   if (uids.length === 0) {
@@ -143,32 +115,17 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  const apiKey = process.env.YANDEX_API_KEY
-  if (!apiKey) {
-    return NextResponse.json(
-      { error: "YANDEX_API_KEY is not configured" },
-      { status: 500 },
-    )
-  }
-
   const responseByUid: Record<string, ThreadResponsePayload> = {}
 
-  await Promise.all(
-    uids.map(async (uid) => {
-      const cached = threadCacheByUid.get(uid)
-      if (cached && cached.date === requestedDate) {
-        responseByUid[uid] = cached.payload
-        return
-      }
-
-      const payload = await fetchThreadRoute(apiKey, uid, requestedDate)
-      threadCacheByUid.set(uid, {
-        date: requestedDate,
-        payload,
-      })
-      responseByUid[uid] = payload
-    }),
-  )
+  for (const uid of uids) {
+    responseByUid[uid] = localThreadPayloadByUid.get(uid) ?? {
+      thread_route: null,
+      thread_error: {
+        status_code: null,
+        message: "Thread route is unavailable in local schedule",
+      },
+    }
+  }
 
   return NextResponse.json(responseByUid)
 }

@@ -1,13 +1,21 @@
 ﻿"use client"
 
-import localTrainsData from "@/public/assets/local-trains.json"
-import fallbackTrainsData from "@/public/assets/trains-fallback.json"
+import localScheduleData from "@/public/assets/local-trains-schedule.json"
 import type { Train, TrainDelayEvent, TrainThreadPayload } from "@/lib/trains"
-import { ClockMode, getDateKey, isDevMode } from "@/lib/runtime-mode"
+import { ClockMode, getDateKey } from "@/lib/runtime-mode"
 import { create } from "zustand"
 import { createJSONStorage, persist } from "zustand/middleware"
 
-type DataSource = "api" | "local-dev" | "local-fallback"
+type DataSource = "local-schedule"
+
+type DelayPayload = {
+  departure_event: TrainDelayEvent | null
+  arrival_event: TrainDelayEvent | null
+}
+
+type DelaysApiPayload = {
+  delaysByUid?: Record<string, DelayPayload>
+}
 
 type TrainsStoreState = {
   segments: Train[]
@@ -20,21 +28,25 @@ type TrainsStoreState = {
   isLoadingThreads: boolean
   error: string | null
   threadsError: string | null
+  isLoadingDelays: boolean
+  delaysError: string | null
   fetchForToday: (options?: { force?: boolean }) => Promise<void>
   fetchThreadsForUids: (uids: string[]) => Promise<void>
+  fetchDelays: () => Promise<void>
 }
 
-type ApiError = {
-  error?: string
-  details?: string
-}
-
-type ThreadsApiPayload = Record<string, TrainThreadPayload>
 type FallbackPayload = {
   segments?: unknown
 }
+type LocalScheduleSection = {
+  date?: unknown
+  segments?: unknown
+}
+type LocalSchedulePayload = {
+  weekday?: LocalScheduleSection
+  weekend?: LocalScheduleSection
+}
 
-const THREADS_BATCH_SIZE = 25
 const ISO_DATE_PREFIX_REGEX = /^(\d{4}-\d{2}-\d{2})([ T].*)$/
 const DATE_ONLY_REGEX = /^\d{4}-\d{2}-\d{2}$/
 
@@ -108,49 +120,6 @@ function normalizeSegmentsToDay(segments: Train[], dayKey: string): Train[] {
   return segments.map((segment) => normalizeSegmentDatesToDay(segment, dayKey))
 }
 
-function mockLocalTrainDelays(segments: Train[]): Train[] {
-  return segments.map((segment, index) => {
-    const departureMock: TrainDelayEvent | null =
-      index % 17 === 0
-        ? {
-            type: "possible_delay",
-            minutesFromNew: null,
-            minutesToNew: 10,
-            minutesFrom: 0,
-            minutesTo: 10,
-          }
-        : null
-    const arrivalMock: TrainDelayEvent | null =
-      index % 12 === 0
-        ? {
-            type: "fact",
-            minutesFromNew: 2,
-            minutesToNew: 2,
-            minutesFrom: 2,
-            minutesTo: 2,
-          }
-        : index % 23 === 0
-          ? {
-              type: "fact_interpolated",
-              minutesFromNew: 14,
-              minutesToNew: 14,
-              minutesFrom: 14,
-              minutesTo: 14,
-            }
-          : null
-
-    if (!departureMock && !arrivalMock) {
-      return segment
-    }
-
-    return {
-      ...segment,
-      departure_event: departureMock ?? segment.departure_event ?? null,
-      arrival_event: arrivalMock ?? segment.arrival_event ?? null,
-    }
-  })
-}
-
 function buildSafeLocalStorage(): Storage {
   return {
     getItem: (name) => localStorage.getItem(name),
@@ -206,7 +175,40 @@ function readLocalTrains(payload: unknown, dayKey: string): Train[] {
     return []
   }
 
-  return mockLocalTrainDelays(normalizeSegmentsToDay(segments, dayKey))
+  return normalizeSegmentsToDay(segments, dayKey).map((segment) => ({
+    ...segment,
+    departure_event: null,
+    arrival_event: null,
+  }))
+}
+
+function isWeekendDayKey(dayKey: string): boolean {
+  const date = new Date(`${dayKey}T12:00:00+03:00`)
+  const day = date.getDay()
+  return day === 0 || day === 6
+}
+
+function readLocalScheduleTrains(payload: unknown, dayKey: string): Train[] {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
+    return []
+  }
+
+  const schedule = payload as LocalSchedulePayload
+  const section = isWeekendDayKey(dayKey) ? schedule.weekend : schedule.weekday
+  return readLocalTrains(section, dayKey)
+}
+
+function applyDelayPayloads(segments: Train[], delaysByUid: Record<string, DelayPayload>): Train[] {
+  return segments.map((segment) => {
+    const uid = segment.thread?.uid
+    const delay = uid ? delaysByUid[uid] : null
+
+    return {
+      ...segment,
+      departure_event: delay?.departure_event ?? null,
+      arrival_event: delay?.arrival_event ?? null,
+    }
+  })
 }
 
 export const useTrainsStore = create<TrainsStoreState>()(
@@ -217,14 +219,15 @@ export const useTrainsStore = create<TrainsStoreState>()(
       inFlightUids: {},
       cacheDate: null,
       clockMode: "real",
-      dataSource: "api",
+      dataSource: "local-schedule",
       isLoading: false,
       isLoadingThreads: false,
       error: null,
       threadsError: null,
+      isLoadingDelays: false,
+      delaysError: null,
       fetchForToday: async (options) => {
-        const devEnabled = isDevMode()
-        const desiredClockMode: ClockMode = devEnabled ? "fixed-2026-04-18" : "real"
+        const desiredClockMode: ClockMode = "real"
         const today = getDateKey(desiredClockMode)
         const state = get()
         const force = options?.force === true
@@ -242,193 +245,60 @@ export const useTrainsStore = create<TrainsStoreState>()(
 
         set({ isLoading: true, error: null, clockMode: desiredClockMode })
 
-        if (devEnabled) {
-          const localSegments = readLocalTrains(localTrainsData, today)
-          set({
-            segments: localSegments,
-            threadsByUid: {},
-            inFlightUids: {},
-            cacheDate: today,
-            dataSource: "local-dev",
-            isLoading: false,
-            error: null,
-            threadsError: null,
-          })
-          return
-        }
-
-        try {
-          const response = await fetch("/api/trains", { cache: "no-store" })
-
-          if (!response.ok) {
-            const errorPayload = (await response.json().catch(() => null)) as ApiError | null
-            const message =
-              errorPayload?.details ??
-              errorPayload?.error ??
-              `Request failed with status ${response.status}`
-            throw new Error(message)
-          }
-
-          const payload = (await response.json()) as unknown
-          const segments = extractSegments(payload)
-          if (!segments) {
-            throw new Error("Invalid API payload: expected train segments array")
-          }
-
-          set({
-            segments,
-            cacheDate: today,
-            clockMode: "real",
-            dataSource: "api",
-            isLoading: false,
-            error: null,
-            threadsError: null,
-          })
-        } catch (error) {
-          const message = error instanceof Error ? error.message : "Failed to load train data"
-          const fallbackDate = getDateKey("fixed-2026-04-18")
-          const localSegments = readLocalTrains(fallbackTrainsData, fallbackDate)
-
-          if (localSegments.length > 0) {
-            set({
-              segments: localSegments,
-              threadsByUid: {},
-              inFlightUids: {},
-              cacheDate: fallbackDate,
-              clockMode: "fixed-2026-04-18",
-              dataSource: "local-fallback",
-              isLoading: false,
-              error: `API недоступен, показаны поезда из локального fallback: ${message}`,
-              threadsError: null,
-            })
-            return
-          }
-
-          set({
-            isLoading: false,
-            error: `${message}. Локальный fallback недоступен`,
-          })
-        }
-      },
-      fetchThreadsForUids: async (uids: string[]) => {
-        const state = get()
-        if (state.dataSource !== "api") {
-          return
-        }
-
-        const today = getDateKey(state.clockMode)
-        const pendingUids = Array.from(new Set(uids))
-          .map((uid) => uid.trim())
-          .filter((uid) => uid.length > 0)
-          .filter((uid) => !state.threadsByUid[uid] && !state.inFlightUids[uid])
-
-        if (pendingUids.length === 0) {
-          return
-        }
-
-        const newInFlight: Record<string, true> = {}
-        for (const uid of pendingUids) {
-          newInFlight[uid] = true
-        }
-
-        set((prev) => ({
-          inFlightUids: { ...prev.inFlightUids, ...newInFlight },
-          isLoadingThreads: true,
+        const localSegments = readLocalScheduleTrains(localScheduleData, today)
+        set({
+          segments: localSegments,
+          threadsByUid: {},
+          inFlightUids: {},
+          cacheDate: today,
+          dataSource: "local-schedule",
+          isLoading: false,
+          error: null,
           threadsError: null,
-        }))
+          delaysError: null,
+        })
+      },
+      fetchThreadsForUids: async () => {
+        set({ isLoadingThreads: false, threadsError: null })
+      },
+      fetchDelays: async () => {
+        const state = get()
+        if (state.isLoadingDelays || state.segments.length === 0) {
+          return
+        }
+
+        set({ isLoadingDelays: true, delaysError: null })
 
         try {
-          const chunks: string[][] = []
-          for (let i = 0; i < pendingUids.length; i += THREADS_BATCH_SIZE) {
-            chunks.push(pendingUids.slice(i, i + THREADS_BATCH_SIZE))
+          const response = await fetch("/api/trains/delays", { cache: "no-store" })
+          if (!response.ok) {
+            const errorPayload = (await response.json().catch(() => null)) as
+              | { error?: string; details?: string }
+              | null
+            throw new Error(
+              errorPayload?.details ??
+                errorPayload?.error ??
+                `Delay request failed with status ${response.status}`,
+            )
           }
 
-          for (const chunk of chunks) {
-            try {
-              const query = encodeURIComponent(chunk.join(","))
-              const response = await fetch(`/api/trains/threads?uids=${query}&date=${today}`, {
-                cache: "no-store",
-              })
-
-              if (!response.ok) {
-                const errorPayload = (await response.json().catch(() => null)) as ApiError | null
-                const message =
-                  errorPayload?.details ??
-                  errorPayload?.error ??
-                  `Request failed with status ${response.status}`
-                throw new Error(message)
-              }
-
-              const payload = (await response.json()) as unknown
-              if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
-                throw new Error("Invalid API payload: expected object keyed by uid")
-              }
-
-              const payloadRecord = payload as ThreadsApiPayload
-
-              set((prev) => {
-                const nextThreadsByUid = { ...prev.threadsByUid }
-                const nextInFlightUids = { ...prev.inFlightUids }
-
-                for (const uid of chunk) {
-                  const item = payloadRecord[uid]
-                  nextThreadsByUid[uid] = item ?? {
-                    thread_route: null,
-                    thread_error: {
-                      status_code: null,
-                      message: "Нитка не найдена в ответе batch API",
-                    },
-                  }
-                  delete nextInFlightUids[uid]
-                }
-
-                return {
-                  threadsByUid: nextThreadsByUid,
-                  inFlightUids: nextInFlightUids,
-                  isLoadingThreads: Object.keys(nextInFlightUids).length > 0,
-                  threadsError: null,
-                }
-              })
-            } catch (chunkError) {
-              const chunkMessage =
-                chunkError instanceof Error ? chunkError.message : "Failed to load thread routes chunk"
-
-              set((prev) => {
-                const nextThreadsByUid = { ...prev.threadsByUid }
-                const nextInFlightUids = { ...prev.inFlightUids }
-                for (const uid of chunk) {
-                  nextThreadsByUid[uid] = {
-                    thread_route: null,
-                    thread_error: {
-                      status_code: null,
-                      message: chunkMessage,
-                    },
-                  }
-                  delete nextInFlightUids[uid]
-                }
-
-                return {
-                  threadsByUid: nextThreadsByUid,
-                  inFlightUids: nextInFlightUids,
-                  isLoadingThreads: Object.keys(nextInFlightUids).length > 0,
-                  threadsError: chunkMessage,
-                }
-              })
-            }
+          const payload = (await response.json()) as DelaysApiPayload
+          const delaysByUid = payload.delaysByUid
+          if (!delaysByUid || typeof delaysByUid !== "object" || Array.isArray(delaysByUid)) {
+            throw new Error("Invalid delay payload: expected delaysByUid object")
           }
+
+          set((prev) => ({
+            segments: applyDelayPayloads(prev.segments, delaysByUid),
+            isLoadingDelays: false,
+            delaysError: null,
+          }))
         } catch (error) {
-          const message = error instanceof Error ? error.message : "Failed to load thread routes"
-          set((prev) => {
-            const nextInFlightUids = { ...prev.inFlightUids }
-            for (const uid of pendingUids) {
-              delete nextInFlightUids[uid]
-            }
-
-            return {
-              inFlightUids: nextInFlightUids,
-              isLoadingThreads: Object.keys(nextInFlightUids).length > 0,
-              threadsError: message,
-            }
+          const message = error instanceof Error ? error.message : "Failed to load train delays"
+          console.error("[trainsStore] failed to fetch train delays", error)
+          set({
+            isLoadingDelays: false,
+            delaysError: message,
           })
         }
       },

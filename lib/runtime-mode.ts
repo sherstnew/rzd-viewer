@@ -8,15 +8,6 @@ const FIXED_DATE_UTC = {
   day: 18,
 }
 
-function parseBooleanEnv(rawValue: string | undefined): boolean {
-  if (!rawValue) {
-    return false
-  }
-
-  const normalized = rawValue.trim().toLowerCase()
-  return normalized === "true" || normalized === "1" || normalized === "yes"
-}
-
 function getMoscowTimeParts(now: Date) {
   const parts = new Intl.DateTimeFormat("en-GB", {
     timeZone: "Europe/Moscow",
@@ -32,10 +23,6 @@ function getMoscowTimeParts(now: Date) {
   const second = Number(partByType.get("second") ?? "0")
 
   return { hour, minute, second }
-}
-
-export function isDevMode(): boolean {
-  return parseBooleanEnv(process.env.NEXT_PUBLIC_IS_DEV)
 }
 
 export function getNow(clockMode: ClockMode): Date {

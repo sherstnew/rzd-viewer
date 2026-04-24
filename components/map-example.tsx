@@ -118,6 +118,12 @@ type LongDistanceViewport = {
   span: string
   zoom: number
 }
+type SuburbanViewportBounds = {
+  west: number
+  east: number
+  south: number
+  north: number
+}
 
 const LONG_DISTANCE_TRAINS_CACHE_TTL_MS = 60_000
 const LONG_DISTANCE_TRAINS_DEBOUNCE_MS = 350
@@ -1221,6 +1227,47 @@ function MapZoomWatcher({ onZoomChange }: { onZoomChange: (zoom: number) => void
   return null
 }
 
+function SuburbanViewportWatcher({
+  enabled,
+  onBoundsChange,
+}: {
+  enabled: boolean
+  onBoundsChange: (bounds: SuburbanViewportBounds | null) => void
+}) {
+  const updateBounds = useCallback(
+    (map: L.Map) => {
+      if (!enabled) {
+        onBoundsChange(null)
+        return
+      }
+
+      const bounds = map.getBounds()
+      onBoundsChange({
+        west: bounds.getWest(),
+        east: bounds.getEast(),
+        south: bounds.getSouth(),
+        north: bounds.getNorth(),
+      })
+    },
+    [enabled, onBoundsChange],
+  )
+
+  const map = useMapEvents({
+    moveend(event) {
+      updateBounds(event.target)
+    },
+    zoomend(event) {
+      updateBounds(event.target)
+    },
+  })
+
+  useEffect(() => {
+    updateBounds(map)
+  }, [map, updateBounds])
+
+  return null
+}
+
 function getLongDistanceViewport(map: L.Map): LongDistanceViewport {
   const center = map.getCenter()
   const bounds = map.getBounds()
@@ -1627,6 +1674,7 @@ function ZoomToLongDistanceRoute({
 export function MapExample() {
   const [currentZoom, setCurrentZoom] = useState(10)
   const [clockTimestamp, setClockTimestamp] = useState(() => getNow("real").getTime())
+  const [suburbanViewportBounds, setSuburbanViewportBounds] = useState<SuburbanViewportBounds | null>(null)
   const [currentStation, setCurrentStation] = useState<RouteStation | null>(null)
   const [stationPhotos, setStationPhotos] = useState<StationPhotoItem[]>([])
   const [isPhotosLoading, setIsPhotosLoading] = useState(false)
@@ -1655,9 +1703,11 @@ export function MapExample() {
     threadsByUid,
     clockMode,
     fetchForToday,
+    fetchDelays,
     fetchThreadsForUids,
     error: trainsError,
     threadsError,
+    delaysError,
   } = useTrainsStore()
 
   const showPermanentStationLabels = currentZoom >= STATION_LABEL_ZOOM_THRESHOLD
@@ -1748,29 +1798,32 @@ export function MapExample() {
     [clockTimestamp, hydratedSegments],
   )
 
-  const activeTrainUids = useMemo(() => {
-    const now = clockTimestamp
+  const visibleTrainUids = useMemo(() => {
+    if (!suburbanViewportBounds || showLongDistanceTrains) {
+      return []
+    }
+
     const uids = new Set<string>()
 
-    for (const segment of segments) {
-      const uid = segment.thread?.uid
+    for (const train of trains) {
+      const uid = train.thread?.uid
       if (!uid) {
         continue
       }
 
-      const departureMs = new Date(segment.departure).getTime()
-      const arrivalMs = new Date(segment.arrival).getTime()
-      if (!Number.isFinite(departureMs) || !Number.isFinite(arrivalMs)) {
-        continue
-      }
+      const isVisible =
+        train.longitude >= suburbanViewportBounds.west &&
+        train.longitude <= suburbanViewportBounds.east &&
+        train.latitude >= suburbanViewportBounds.south &&
+        train.latitude <= suburbanViewportBounds.north
 
-      if (departureMs <= now && now <= arrivalMs) {
+      if (isVisible) {
         uids.add(uid)
       }
     }
 
     return Array.from(uids)
-  }, [clockTimestamp, segments])
+  }, [showLongDistanceTrains, suburbanViewportBounds, trains])
 
   const { resolvedTheme } = useTheme()
   const tileTheme = resolvedTheme === "dark" ? "dark" : "light"
@@ -1868,75 +1921,37 @@ export function MapExample() {
     return buildStationSchedule(currentStation, clockTimestamp, hydratedSegments)
   }, [clockTimestamp, currentStation, hydratedSegments])
 
-  const upcomingStationTrainUids = useMemo(() => {
-    if (!currentStation) {
-      return []
-    }
-
-    const windowEnd = clockTimestamp + STATION_SCHEDULE_WINDOW_MS
-    const uids = new Set<string>()
-
-    for (const segment of segments) {
-      const uid = segment.thread?.uid
-      if (!uid) {
-        continue
-      }
-
-      if (
-        segment.mcd_route_id &&
-        routeGroup(segment.mcd_route_id) !== routeGroup(currentStation.routeId)
-      ) {
-        continue
-      }
-
-      const departureTimestamp = toTimestamp(segment.departure)
-      const arrivalTimestamp = toTimestamp(segment.arrival)
-      if (departureTimestamp === null || arrivalTimestamp === null) {
-        continue
-      }
-
-      if (arrivalTimestamp >= clockTimestamp && departureTimestamp <= windowEnd) {
-        uids.add(uid)
-      }
-    }
-
-    return Array.from(uids)
-  }, [clockTimestamp, currentStation, segments])
-
   useEffect(() => {
-    void fetchForToday()
+    void fetchForToday().then(() => {
+      void fetchDelays()
+    })
     const interval = setInterval(() => {
-      void fetchForToday({ force: true })
-    }, 30_000)
+      void fetchForToday()
+    }, 60_000)
 
     return () => {
       clearInterval(interval)
     }
-  }, [fetchForToday])
+  }, [fetchDelays, fetchForToday])
 
   useEffect(() => {
-    if (activeTrainUids.length === 0) {
-      return
-    }
-
-    void fetchThreadsForUids(activeTrainUids)
-
+    void fetchDelays()
     const interval = setInterval(() => {
-      void fetchThreadsForUids(activeTrainUids)
-    }, 7000)
+      void fetchDelays()
+    }, 5 * 60_000)
 
     return () => {
       clearInterval(interval)
     }
-  }, [activeTrainUids, fetchThreadsForUids])
+  }, [fetchDelays])
 
   useEffect(() => {
-    if (!currentStation || upcomingStationTrainUids.length === 0) {
+    if (visibleTrainUids.length === 0) {
       return
     }
 
-    void fetchThreadsForUids(upcomingStationTrainUids)
-  }, [currentStation, fetchThreadsForUids, upcomingStationTrainUids])
+    void fetchThreadsForUids(visibleTrainUids)
+  }, [fetchThreadsForUids, visibleTrainUids])
 
   useEffect(() => {
     if (!selectedLongDistanceTrain) {
@@ -2072,8 +2087,13 @@ export function MapExample() {
     const updatedDelaySignature = JSON.stringify([updated.departure_event, updated.arrival_event])
     const shouldSyncThreadRoute = !currentTrain.thread_route && (updated.thread_route || updated.thread_error)
     const shouldSyncDelay = currentDelaySignature !== updatedDelaySignature
+    const currentTrainWithPosition = currentTrain as Partial<TrainWithCoordinates>
+    const updatedTrainWithPosition = updated as Partial<TrainWithCoordinates>
+    const shouldSyncPosition =
+      currentTrainWithPosition.longitude !== updatedTrainWithPosition.longitude ||
+      currentTrainWithPosition.latitude !== updatedTrainWithPosition.latitude
 
-    if (shouldSyncThreadRoute || shouldSyncDelay) {
+    if (shouldSyncThreadRoute || shouldSyncDelay || shouldSyncPosition) {
       setCurrentTrain(updated)
     }
   }, [currentTrain, currentTrainKey, trains, setCurrentTrain])
@@ -2093,6 +2113,7 @@ export function MapExample() {
       {routeError ? <p className="text-sm text-destructive">{routeError}</p> : null}
       {trainsError ? <p className="text-sm text-destructive">{trainsError}</p> : null}
       {threadsError ? <p className="text-sm text-destructive">{threadsError}</p> : null}
+      {delaysError ? <p className="text-sm text-destructive">{delaysError}</p> : null}
       {longDistanceTrainsError ? (
         <p className="text-sm text-destructive">Не удалось загрузить поезда дальнего следования: {longDistanceTrainsError}</p>
       ) : null}
@@ -2139,6 +2160,10 @@ export function MapExample() {
           shouldIgnoreMapClick={shouldIgnoreMapClick}
         />
         <MapZoomWatcher onZoomChange={setCurrentZoom} />
+        <SuburbanViewportWatcher
+          enabled={!showLongDistanceTrains}
+          onBoundsChange={setSuburbanViewportBounds}
+        />
         <LongDistanceTrainLoader
           enabled={showLongDistanceTrains}
           onError={setLongDistanceTrainsError}
@@ -2199,6 +2224,7 @@ export function MapExample() {
               const upcomingRoute = isSelectedRoute ? selectedTrainRouteOverlay?.upcomingRoute : null
               const passedRoute = isSelectedRoute ? selectedTrainRouteOverlay?.passedRoute : null
               const overlayKeySuffix = currentTrainKey ?? "no-train"
+              const overlayMotionKey = `${overlayKeySuffix}-${Math.floor(clockTimestamp / 500)}`
 
               return [
                 <GeoJSON
@@ -2212,7 +2238,7 @@ export function MapExample() {
                 />,
                 upcomingRoute ? (
                   <GeoJSON
-                    key={`${routeDefinition.id}-upcoming-progress-${overlayKeySuffix}`}
+                    key={`${routeDefinition.id}-upcoming-progress-${overlayMotionKey}`}
                     data={upcomingRoute}
                     style={{
                       color: "#fff",
@@ -2225,7 +2251,7 @@ export function MapExample() {
                 ) : null,
                 passedRoute ? (
                   <GeoJSON
-                    key={`${routeDefinition.id}-passed-progress-${overlayKeySuffix}`}
+                    key={`${routeDefinition.id}-passed-progress-${overlayMotionKey}`}
                     data={passedRoute}
                     style={{
                       color: routeDefinition.color,
