@@ -15,6 +15,7 @@ import {
     InputGroupAddon,
     InputGroupInput,
 } from "@/components/ui/input-group";
+import { Switch } from "@/components/ui/switch";
 
 type StationSearchItem = {
     key: string;
@@ -158,12 +159,16 @@ export function SearchBox() {
     const setCurrentStationTitle = useCurrentTrainStore(
         (state) => state.setCurrentStationTitle
     );
+    const setShowLongDistanceTrains = useCurrentTrainStore(
+        (state) => state.setShowLongDistanceTrains
+    );
     const normalizedQuery = toSearchValue(query);
     const currentTimestamp = getNow(clockMode).getTime();
     const routeStationTitleSet = useMemo(
         () => new Set(routeStationTitles.map(toSearchValue)),
         [routeStationTitles]
     );
+    const shouldFilterByRouteStations = routeStationTitleSet.size > 0;
 
     const results = useMemo<SearchResult[]>(() => {
         if (!normalizedQuery) {
@@ -188,7 +193,8 @@ export function SearchBox() {
             .filter((station) => {
                 const stationTitle = toSearchValue(station.title);
                 return (
-                    routeStationTitleSet.has(stationTitle) &&
+                    (!shouldFilterByRouteStations ||
+                        routeStationTitleSet.has(stationTitle)) &&
                     stationTitle.includes(normalizedQuery)
                 );
             })
@@ -219,6 +225,7 @@ export function SearchBox() {
         currentTimestamp,
         normalizedQuery,
         routeStationTitleSet,
+        shouldFilterByRouteStations,
         segments,
         showLongDistanceTrains,
         visibleLongDistanceTrains,
@@ -248,7 +255,7 @@ export function SearchBox() {
     return (
         <div
             ref={rootRef}
-            className="absolute top-3 right-5 z-200 w-80 max-w-[calc(100vw-2.5rem)]"
+            className="absolute top-2 right-3 left-3 z-[1200] w-auto sm:top-3 sm:right-5 sm:left-auto sm:w-80 sm:max-w-[calc(100vw-2.5rem)]"
         >
             <InputGroup>
                 <InputGroupInput
@@ -268,6 +275,31 @@ export function SearchBox() {
                     </InputGroupAddon>
                 ) : null}
             </InputGroup>
+            <div className="fixed right-3 bottom-[calc(env(safe-area-inset-bottom)+0.75rem)] left-3 z-[1200] rounded-md border border-border bg-card/95 px-3 py-2 shadow-md backdrop-blur sm:hidden">
+                <label className="flex cursor-pointer items-center justify-between gap-3 text-sm font-medium">
+                    <span>Поезда дальнего следования</span>
+                    <div className="flex items-center gap-2">
+                        {showLongDistanceTrains &&
+                        visibleLongDistanceTrains.length > 0 ? (
+                            <span className="rounded-sm bg-primary px-1.5 py-0.5 text-xs text-primary-foreground">
+                                {visibleLongDistanceTrains.length}
+                            </span>
+                        ) : null}
+                        <Switch
+                            checked={showLongDistanceTrains}
+                            onCheckedChange={(checked) => {
+                                setShowLongDistanceTrains(checked);
+                                setCurrentTrain(null);
+                                setCurrentStationTitle(null);
+                                if (!checked) {
+                                    setSelectedLongDistanceTrain(null);
+                                }
+                            }}
+                            aria-label="Показать поезда дальнего следования"
+                        />
+                    </div>
+                </label>
+            </div>
 
             {normalizedQuery && isOpen ? (
                 <div className="mt-2 overflow-hidden rounded-md border bg-card/50 shadow-lg backdrop-blur-xl">

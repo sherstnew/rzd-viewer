@@ -2,8 +2,8 @@ import { NextRequest, NextResponse } from "next/server"
 
 const RAILWAYZ_BASE_URL = "https://railwayz.info"
 const RAILWAYZ_SEARCH_URLS = [
-  "http://railwayz.info/photolines/search/",
   `${RAILWAYZ_BASE_URL}/photolines/search/`,
+  "http://railwayz.info/photolines/search/",
 ]
 const MAX_PHOTOS = 30
 const RAILWAYZ_REQUEST_TIMEOUT_MS = 15000
@@ -14,6 +14,27 @@ type StationPhotoItem = {
   photoPageUrl: string
   fullImageUrl: string | null
   caption: string
+}
+
+type RailwayzAttemptDebug = {
+  url: string
+  attempt: number
+  status: number | null
+  error: string | null
+  redirected: boolean | null
+  finalUrl: string | null
+}
+
+type RailwayzDebugInfo = {
+  searchQueries: string[]
+  attempts: RailwayzAttemptDebug[]
+  selectedQuery: string | null
+  selectedUrl: string | null
+  finalResponseUrl: string | null
+  htmlLength: number
+  hasPhotosSection: boolean
+  figureCountInSection: number
+  htmlSnippet: string
 }
 
 function decodeHtmlEntities(value: string): string {
@@ -129,6 +150,20 @@ function parsePhotosFromHtml(html: string): StationPhotoItem[] {
   return photos
 }
 
+function countFiguresInPhotosSection(html: string): number {
+  const section = extractPhotosSection(html)
+  if (!section) {
+    return 0
+  }
+
+  const figureRegex = /<figure[^>]*class=(["'])[^"']*img_cell[^"']*\1[^>]*>/gi
+  let count = 0
+  while (figureRegex.exec(section) !== null) {
+    count += 1
+  }
+  return count
+}
+
 function describeFetchError(error: unknown): string {
   if (!(error instanceof Error)) {
     return "unknown error"
@@ -166,8 +201,13 @@ function shouldRetryFetchError(error: unknown): boolean {
   return code === "ECONNRESET" || code === "ETIMEDOUT"
 }
 
-async function fetchRailwayzSearch(searchBody: string): Promise<Response | null> {
+async function fetchRailwayzSearch(searchBody: string): Promise<{
+  response: Response | null
+  attempts: RailwayzAttemptDebug[]
+  selectedUrl: string | null
+}> {
   const errors: string[] = []
+  const attempts: RailwayzAttemptDebug[] = []
 
   for (const url of RAILWAYZ_SEARCH_URLS) {
     for (let attempt = 1; attempt <= RAILWAYZ_MAX_ATTEMPTS_PER_URL; attempt += 1) {
@@ -175,20 +215,51 @@ async function fetchRailwayzSearch(searchBody: string): Promise<Response | null>
         const response = await fetch(url, {
           method: "POST",
           headers: {
+            Accept:
+              "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+            "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
+            "Cache-Control": "max-age=0",
             "Content-Type": "application/x-www-form-urlencoded",
-            "User-Agent": "Mozilla/5.0 (compatible; rzd-viewer/1.0)",
+            Origin: RAILWAYZ_BASE_URL,
+            Referer: `${RAILWAYZ_BASE_URL}/photolines/`,
+            "Upgrade-Insecure-Requests": "1",
+            "User-Agent":
+              "Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36",
           },
           body: searchBody,
           cache: "no-store",
           signal: AbortSignal.timeout(RAILWAYZ_REQUEST_TIMEOUT_MS),
+          redirect: "follow",
         })
 
+        attempts.push({
+          url,
+          attempt,
+          status: response.status,
+          error: null,
+          redirected: response.redirected,
+          finalUrl: response.url,
+        })
+
+        if (response.ok && new URL(response.url).pathname !== "/photolines/search/") {
+          return { response, attempts, selectedUrl: url }
+        }
+
         if (response.ok) {
-          return response
+          errors.push(`${url} (attempt ${attempt}): returned search page`)
+          break
         }
 
         errors.push(`${url} (attempt ${attempt}): HTTP ${response.status}`)
       } catch (error) {
+        attempts.push({
+          url,
+          attempt,
+          status: null,
+          error: describeFetchError(error),
+          redirected: null,
+          finalUrl: null,
+        })
         errors.push(`${url} (attempt ${attempt}): ${describeFetchError(error)}`)
         if (!shouldRetryFetchError(error)) {
           break
@@ -198,31 +269,77 @@ async function fetchRailwayzSearch(searchBody: string): Promise<Response | null>
   }
 
   console.warn(`Railwayz photos search failed. ${errors.join("; ")}`)
-  return null
+  return { response: null, attempts, selectedUrl: null }
 }
 
 export async function POST(request: NextRequest) {
-  const emptyResponse = NextResponse.json({ photos: [] as StationPhotoItem[] })
-
   try {
-    const body = (await request.json().catch(() => null)) as { esrCode?: unknown } | null
+    const body = (await request.json().catch(() => null)) as
+      | { esrCode?: unknown; stationTitle?: unknown }
+      | null
     const esrCode = typeof body?.esrCode === "string" ? body.esrCode.trim() : ""
-    if (!esrCode) {
-      return emptyResponse
+    const stationTitle =
+      typeof body?.stationTitle === "string" ? body.stationTitle.trim() : ""
+    const searchQueries = Array.from(new Set([esrCode, stationTitle].filter(Boolean)))
+    const debugInfo: RailwayzDebugInfo = {
+      searchQueries,
+      attempts: [],
+      selectedQuery: null,
+      selectedUrl: null,
+      finalResponseUrl: null,
+      htmlLength: 0,
+      hasPhotosSection: false,
+      figureCountInSection: 0,
+      htmlSnippet: "",
     }
 
-    const searchBody = new URLSearchParams({ searchstation: esrCode }).toString()
-
-    const response = await fetchRailwayzSearch(searchBody)
-    if (!response) {
-      return emptyResponse
+    if (searchQueries.length === 0) {
+      return NextResponse.json({ photos: [] as StationPhotoItem[], debug: debugInfo })
     }
 
-    const html = await response.text()
-    const photos = parsePhotosFromHtml(html)
-    return NextResponse.json({ photos })
+    for (const [queryIndex, query] of searchQueries.entries()) {
+      const searchBody = new URLSearchParams({ searchstation: query }).toString()
+      const fetchResult = await fetchRailwayzSearch(searchBody)
+      debugInfo.attempts.push(...fetchResult.attempts)
+      if (!fetchResult.response) {
+        continue
+      }
+
+      const html = await fetchResult.response.text()
+      const photos = parsePhotosFromHtml(html)
+      debugInfo.selectedQuery = query
+      debugInfo.selectedUrl = fetchResult.selectedUrl
+      debugInfo.finalResponseUrl = fetchResult.response.url
+      debugInfo.htmlLength = html.length
+      debugInfo.hasPhotosSection = Boolean(extractPhotosSection(html))
+      debugInfo.figureCountInSection = countFiguresInPhotosSection(html)
+      debugInfo.htmlSnippet = html.slice(0, 1200)
+      if (photos.length > 0) {
+        return NextResponse.json({ photos, debug: debugInfo })
+      }
+
+      // If we got HTML but no photos for this query, keep trying next query.
+      if (queryIndex < searchQueries.length - 1) {
+        continue
+      }
+    }
+
+    return NextResponse.json({ photos: [] as StationPhotoItem[], debug: debugInfo })
   } catch (err) {
     console.warn(`Station photos parser failed. ${describeFetchError(err)}`)
-    return emptyResponse
+    return NextResponse.json({
+      photos: [] as StationPhotoItem[],
+      debug: {
+        searchQueries: [],
+        attempts: [],
+        selectedQuery: null,
+        selectedUrl: null,
+        finalResponseUrl: null,
+        htmlLength: 0,
+        hasPhotosSection: false,
+        figureCountInSection: 0,
+        htmlSnippet: "",
+      } satisfies RailwayzDebugInfo,
+    })
   }
 }

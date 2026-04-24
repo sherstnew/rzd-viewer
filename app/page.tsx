@@ -17,9 +17,11 @@ const MapExample = dynamic(
 
 export default function Page() {
     return (
-        <main className="flex w-full flex-1 flex-col gap-6 relative">
+        <main className="relative flex min-h-0 w-full flex-1 flex-col">
             <SearchBox />
-            <MapExample />
+            <div className="min-h-0 flex-1">
+                <MapExample />
+            </div>
         </main>
     );
 }

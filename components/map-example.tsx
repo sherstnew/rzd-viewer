@@ -49,7 +49,6 @@ type RouteId =
   | "mcd5_south"
   | "mcd5_north"
   | "mcd5_korolev"
-  | "mck"
 
 type SnappedPoint = {
   point: LonLat
@@ -88,8 +87,6 @@ type RouteDefinition = {
   color: string
   start?: LonLat
   end?: LonLat
-  stationCodes?: readonly string[]
-  isCircular?: boolean
 }
 
 type NearestProjection = {
@@ -128,6 +125,8 @@ type SuburbanViewportBounds = {
 const LONG_DISTANCE_TRAINS_CACHE_TTL_MS = 60_000
 const LONG_DISTANCE_TRAINS_DEBOUNCE_MS = 350
 const LONG_DISTANCE_VIEWPORT_PRECISION = 3
+const CLOCK_TICK_MS = 1_000
+const TRAIN_HEADING_BUCKET_DEG = 10
 const YANDEX_LIVE_OBJECTS_URL = "https://rasp.yandex.ru/maps/train/objects"
 const OPENRAILWAYMAP_ATTRIBUTION =
   '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>, Style: <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA 2.0</a> <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> and OpenStreetMap'
@@ -139,6 +138,8 @@ const longDistanceTrainsCache = new Map<
     trains: LongDistanceTrainObject[]
   }
 >()
+const trainIconCache = new Map<string, L.DivIcon>()
+const longDistanceIconCache = new Map<string, L.DivIcon>()
 
 const TRAIN_ICON_SIZE_PX = 25
 const TRAIN_ICON_MIN_SIZE_PX = 10
@@ -154,7 +155,6 @@ const MCD2_ROUTE_COLOR = "#d55384"
 const MCD3_ROUTE_COLOR = "#E95B0C"
 const MCD4_ROUTE_COLOR = "#41B384"
 const MCD5_ROUTE_COLOR = "#77B729"
-const MCK_ROUTE_COLOR = "#E42D24"
 const PODOLSK_STATION_CODE = "s9600731"
 const LOBNYA_STATION_CODE = "s9600781"
 const IPPODROM_STATION_CODE = "s9601197"
@@ -162,43 +162,9 @@ const ZHELEZNODOROZHNAYA_STATION_CODE = "s9601675"
 const DOMODEDOVO_STATION_CODE = "s9600811"
 const PUSHKINO_STATION_CODE = "s9600701"
 const BOLSHEVO_STATION_CODE = "s9602217"
-const ANDRONOVKA_MCK_STATION_CODE = "s9855157"
 const LYUBLINO_STATION_CODE = "s9601788"
 const VIDEO_SECTION_START_TITLE = "Красный Строитель"
 const VIDEO_SECTION_END_TITLE = "Подольск"
-const MCK_STATION_CODES = [
-  "s9855157",
-  "s9855163",
-  "s9855164",
-  "s9855165",
-  "s9855166",
-  "s9855167",
-  "s9855168",
-  "s9855169",
-  "s9855170",
-  "s9855171",
-  "s9855172",
-  "s9855158",
-  "s9855173",
-  "s9855174",
-  "s9855175",
-  "s9855176",
-  "s9855177",
-  "s9855178",
-  "s9855179",
-  "s9855180",
-  "s9855181",
-  "s9855182",
-  "s9855159",
-  "s9855184",
-  "s9855186",
-  "s9601063",
-  "s9855187",
-  "s9601334",
-  "s9855160",
-  "s9855161",
-  "s9855162",
-] as const
 
 const ROUTE_DEFINITIONS: RouteDefinition[] = [
   {
@@ -250,13 +216,6 @@ const ROUTE_DEFINITIONS: RouteDefinition[] = [
     start: [37.761228, 55.914823],
     end: [37.861022, 55.926201],
   },
-  {
-    id: "mck",
-    label: "МЦК",
-    color: MCK_ROUTE_COLOR,
-    stationCodes: MCK_STATION_CODES,
-    isCircular: true,
-  },
 ]
 const FORWARD_TERMINAL_BY_ROUTE: Record<RouteId, string> = {
   mcd1: LOBNYA_STATION_CODE,
@@ -266,7 +225,6 @@ const FORWARD_TERMINAL_BY_ROUTE: Record<RouteId, string> = {
   mcd5_south: DOMODEDOVO_STATION_CODE,
   mcd5_north: PUSHKINO_STATION_CODE,
   mcd5_korolev: BOLSHEVO_STATION_CODE,
-  mck: ANDRONOVKA_MCK_STATION_CODE,
 }
 const ROUTE_COLOR_BY_ID: Record<RouteId, string> = {
   mcd1: MCD1_ROUTE_COLOR,
@@ -276,7 +234,6 @@ const ROUTE_COLOR_BY_ID: Record<RouteId, string> = {
   mcd5_south: MCD5_ROUTE_COLOR,
   mcd5_north: MCD5_ROUTE_COLOR,
   mcd5_korolev: MCD5_ROUTE_COLOR,
-  mck: MCK_ROUTE_COLOR,
 }
 const FORCED_STATION_CODES_BY_ROUTE: Partial<Record<RouteId, readonly string[]>> = {
   mcd2: [LYUBLINO_STATION_CODE],
@@ -397,8 +354,6 @@ const stationCandidates: StationCandidate[] = Array.isArray(stationsData)
       return [{ code, title, longitude, latitude, direction, esrCode }]
     })
   : []
-const stationCandidateByCode = new Map(stationCandidates.map((station) => [station.code, station]))
-
 function distanceSq(a: LonLat, b: LonLat): number {
   const dx = a[0] - b[0]
   const dy = a[1] - b[1]
@@ -617,6 +572,22 @@ type StationScheduleItem = {
   trainNumber: string
   trainTitle: string
   routeLabel: string
+}
+
+type StationPhotosDebug = {
+  searchQueries?: string[]
+  attempts?: Array<{
+    url?: string
+    attempt?: number
+    status?: number | null
+    error?: string | null
+  }>
+  selectedQuery?: string | null
+  selectedUrl?: string | null
+  htmlLength?: number
+  hasPhotosSection?: boolean
+  figureCountInSection?: number
+  htmlSnippet?: string
 }
 
 function toTimestamp(value: string | null | undefined): number | null {
@@ -1110,76 +1081,6 @@ function buildAutoStationsForRoute(routeId: RouteId, routeData: RouteGeoJson | n
     }))
 }
 
-function buildExactStationsForRoute(routeId: RouteId, stationCodes: readonly string[]): RouteStation[] {
-  return stationCodes.flatMap((code): RouteStation[] => {
-    const station = stationCandidateByCode.get(code)
-    if (!station) {
-      return []
-    }
-
-    return [
-      {
-        routeId,
-        code: station.code,
-        title: station.title,
-        longitude: station.longitude,
-        latitude: station.latitude,
-        direction: station.direction,
-        esrCode: station.esrCode,
-      },
-    ]
-  })
-}
-
-function buildStationCodeRoute(
-  routeEngine: ReturnType<typeof createRouteEngine>,
-  routeDefinition: RouteDefinition,
-): RouteGeoJson {
-  const stationCodes = routeDefinition.stationCodes ?? []
-  const stationCoordinates = stationCodes.map((code) => {
-    const coordinates = stationCoordinatesByCode.get(code)
-    if (!coordinates) {
-      throw new Error(`Не найдены координаты станции ${code} для ${routeDefinition.label}`)
-    }
-
-    return [coordinates.longitude, coordinates.latitude] as LonLat
-  })
-  const pairs = routeDefinition.isCircular
-    ? stationCoordinates.map((coordinates, index) => [
-        coordinates,
-        stationCoordinates[(index + 1) % stationCoordinates.length],
-      ])
-    : stationCoordinates.slice(0, -1).map((coordinates, index) => [
-        coordinates,
-        stationCoordinates[index + 1],
-      ])
-  const coordinates: LonLat[] = []
-
-  for (const [start, end] of pairs) {
-    const segment = routeEngine.findRoute(start, end)
-    const segmentCoordinates = segment.features[0]?.geometry.coordinates as LonLat[] | undefined
-    if (!segmentCoordinates || segmentCoordinates.length < 2) {
-      continue
-    }
-
-    coordinates.push(...(coordinates.length === 0 ? segmentCoordinates : segmentCoordinates.slice(1)))
-  }
-
-  return {
-    type: "FeatureCollection",
-    features: [
-      {
-        type: "Feature",
-        properties: { name: routeDefinition.label },
-        geometry: {
-          type: "LineString",
-          coordinates,
-        },
-      },
-    ],
-  }
-}
-
 function RouteBounds({ routes }: { routes: RouteGeoJson[] }) {
   const map = useMap()
 
@@ -1227,6 +1128,10 @@ function MapZoomWatcher({ onZoomChange }: { onZoomChange: (zoom: number) => void
   return null
 }
 
+function bucketHeading(heading: number): number {
+  return Math.round(heading / TRAIN_HEADING_BUCKET_DEG) * TRAIN_HEADING_BUCKET_DEG
+}
+
 function SuburbanViewportWatcher({
   enabled,
   onBoundsChange,
@@ -1260,7 +1165,6 @@ function SuburbanViewportWatcher({
       updateBounds(event.target)
     },
   })
-
   useEffect(() => {
     updateBounds(map)
   }, [map, updateBounds])
@@ -1707,7 +1611,6 @@ export function MapExample() {
     fetchThreadsForUids,
     error: trainsError,
     threadsError,
-    delaysError,
   } = useTrainsStore()
 
   const showPermanentStationLabels = currentZoom >= STATION_LABEL_ZOOM_THRESHOLD
@@ -1729,8 +1632,10 @@ export function MapExample() {
     return Date.now() < stationClickLockUntilRef.current
   }, [])
 
-  useEffect(() => {
-    if (showLongDistanceTrains) {
+  const handleShowLongDistanceTrainsChange = useCallback((nextValue: boolean) => {
+    setShowLongDistanceTrains(nextValue)
+
+    if (nextValue) {
       setCurrentTrain(null)
       setCurrentStationTitle(null)
       closeStationSidebar()
@@ -1742,22 +1647,16 @@ export function MapExample() {
   }, [
     closeLongDistanceSidebar,
     closeStationSidebar,
+    setShowLongDistanceTrains,
     setCurrentStationTitle,
     setCurrentTrain,
-    showLongDistanceTrains,
   ])
-
   const { routeDataById, routeError } = useMemo(() => {
     try {
       const routeEngine = createRouteEngine(moscowBigGeoJson as GeoJsonObject)
       const nextRoutes: RouteDataById = {}
 
       for (const routeDefinition of ROUTE_DEFINITIONS) {
-        if (routeDefinition.stationCodes) {
-          nextRoutes[routeDefinition.id] = buildStationCodeRoute(routeEngine, routeDefinition)
-          continue
-        }
-
         if (!routeDefinition.start || !routeDefinition.end) {
           throw new Error(`Не заданы координаты маршрута ${routeDefinition.label}`)
         }
@@ -1880,7 +1779,6 @@ export function MapExample() {
         "mcd5_korolev",
         routeDataById.mcd5_korolev ?? null,
       ),
-      mck: buildExactStationsForRoute("mck", MCK_STATION_CODES),
     }
   }, [routeDataById])
 
@@ -1895,6 +1793,21 @@ export function MapExample() {
       ),
     [routeStationsById],
   )
+  const renderedRouteStations = useMemo(
+    () =>
+      routeStations.map((station) => {
+        const snapped = snapToRoute(
+          [station.longitude, station.latitude],
+          routeDataById[station.routeId] ?? null,
+        )
+        const [lon, lat] = snapped.point
+        return {
+          station,
+          center: [lat, lon] as [number, number],
+        }
+      }),
+    [routeDataById, routeStations],
+  )
 
   useEffect(() => {
     setRouteStationTitles(Array.from(new Set(routeStations.map((station) => station.title))))
@@ -1906,11 +1819,15 @@ export function MapExample() {
     }
 
     const station = routeStations.find((routeStation) => routeStation.title === currentStationTitle)
-
-    setCurrentTrain(null)
-    setCurrentStation(station ?? null)
-    setStationPhotos([])
-    setIsPhotosLoading(Boolean(station?.esrCode))
+    const timeoutId = window.setTimeout(() => {
+      setCurrentTrain(null)
+      setCurrentStation(station ?? null)
+      setStationPhotos([])
+      setIsPhotosLoading(Boolean(station))
+    }, 0)
+    return () => {
+      window.clearTimeout(timeoutId)
+    }
   }, [currentStationTitle, routeStations, setCurrentTrain])
 
   const stationSchedule = useMemo<StationScheduleItem[]>(() => {
@@ -1920,7 +1837,6 @@ export function MapExample() {
 
     return buildStationSchedule(currentStation, clockTimestamp, hydratedSegments)
   }, [clockTimestamp, currentStation, hydratedSegments])
-
   useEffect(() => {
     void fetchForToday().then(() => {
       void fetchDelays()
@@ -1958,17 +1874,26 @@ export function MapExample() {
       return
     }
 
-    setSelectedLongDistanceRoute(null)
+    const resetTimeoutId = window.setTimeout(() => {
+      setSelectedLongDistanceRoute(null)
+    }, 0)
 
     if (!selectedLongDistanceTrain.date) {
-      setLongDistanceRouteError("Нет даты отправления для запроса маршрута")
-      setIsLongDistanceRouteLoading(false)
-      return
+      const errorTimeoutId = window.setTimeout(() => {
+        setLongDistanceRouteError("Нет даты отправления для запроса маршрута")
+        setIsLongDistanceRouteLoading(false)
+      }, 0)
+      return () => {
+        window.clearTimeout(resetTimeoutId)
+        window.clearTimeout(errorTimeoutId)
+      }
     }
 
     const controller = new AbortController()
-    setIsLongDistanceRouteLoading(true)
-    setLongDistanceRouteError(null)
+    const loadingTimeoutId = window.setTimeout(() => {
+      setIsLongDistanceRouteLoading(true)
+      setLongDistanceRouteError(null)
+    }, 0)
 
     const params = new URLSearchParams({
       number: normalizeLongDistanceRouteRequestNumber(selectedLongDistanceTrain.number),
@@ -2012,12 +1937,14 @@ export function MapExample() {
       })
 
     return () => {
+      window.clearTimeout(resetTimeoutId)
+      window.clearTimeout(loadingTimeoutId)
       controller.abort()
     }
   }, [selectedLongDistanceTrain])
 
   useEffect(() => {
-    if (!currentStation?.esrCode) {
+    if (!currentStation) {
       return
     }
 
@@ -2030,24 +1957,39 @@ export function MapExample() {
       },
       body: JSON.stringify({
         esrCode: currentStation.esrCode,
+        stationTitle: currentStation.title,
       }),
       signal: controller.signal,
       cache: "no-store",
     })
       .then(async (response) => {
         if (!response.ok) {
-          return { photos: [] as StationPhotoItem[] }
+          return {
+            photos: [] as StationPhotoItem[],
+            debug: {
+              error: `HTTP ${response.status}`,
+            } as StationPhotosDebug & { error?: string },
+          }
         }
 
         const payload = (await response.json().catch(() => null)) as
-          | { photos?: StationPhotoItem[] }
+          | { photos?: StationPhotoItem[]; debug?: StationPhotosDebug }
           | null
         return {
           photos: Array.isArray(payload?.photos) ? payload.photos : [],
+          debug: payload?.debug,
         }
       })
       .then((result) => {
         setStationPhotos(result.photos)
+        const stationTitle = currentStation.title
+        // Railwayz debug trace for local troubleshooting when photos do not appear.
+        console.info("[station-photos]", {
+          stationTitle,
+          esrCode: currentStation.esrCode,
+          photosCount: result.photos.length,
+          debug: result.debug ?? null,
+        })
       })
       .catch((error: unknown) => {
         const aborted =
@@ -2071,7 +2013,7 @@ export function MapExample() {
     return () => {
       controller.abort()
     }
-  }, [currentStation?.code, currentStation?.esrCode])
+  }, [currentStation])
 
   useEffect(() => {
     if (!currentTrain || !currentTrainKey) {
@@ -2100,22 +2042,100 @@ export function MapExample() {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setClockTimestamp(getNow(clockMode).getTime())
-    }, 500)
+      setClockTimestamp((prevTimestamp) => {
+        const nextTimestamp = getNow(clockMode).getTime()
+        return nextTimestamp === prevTimestamp ? prevTimestamp : nextTimestamp
+      })
+    }, CLOCK_TICK_MS)
 
     return () => {
       clearInterval(interval)
     }
   }, [clockMode])
 
+  const renderedSuburbanTrains = useMemo(
+    () =>
+      trains.map((train) => {
+        const trainKey = trainInstanceKey(train)
+        const routeId = train.mcd_route_id ?? "mcd2"
+        const routeData = routeDataById[routeId] ?? null
+        const snapped = snapToRoute([train.longitude, train.latitude], routeData)
+        const [lon, lat] = snapped.point
+        const heading = resolveTrainHeading(train, snapped)
+        const headingBucket = bucketHeading(heading)
+        const isSelected = currentTrainKey === trainKey
+        const selectedColor = ROUTE_COLOR_BY_ID[routeId]
+        const iconSrc = trainIconSrc(train)
+        const iconCacheKey = `${iconSrc}|${trainIconSize}|${headingBucket}|${isSelected ? "1" : "0"}|${selectedColor}`
+        const cachedIcon = trainIconCache.get(iconCacheKey)
+        const icon =
+          cachedIcon ??
+          createTrainIconWithSelection(iconSrc, headingBucket, trainIconSize, isSelected, selectedColor)
+
+        if (!cachedIcon) {
+          trainIconCache.set(iconCacheKey, icon)
+        }
+
+        return {
+          train,
+          trainKey,
+          position: [lat, lon] as [number, number],
+          isSelected,
+          icon,
+          delayDetails: getTrainDelayLabels(train),
+        }
+      }),
+    [currentTrainKey, routeDataById, trainIconSize, trains],
+  )
+
+  const renderedLongDistanceTrains = useMemo(
+    () =>
+      visibleLongDistanceTrains.map((train) => {
+        const trainKey = longDistanceTrainKey(train)
+        const isSelected = selectedLongDistanceTrainKey === trainKey
+        const iconCacheKey = `${trainIconSize}|${isSelected ? "1" : "0"}`
+        const cachedIcon = longDistanceIconCache.get(iconCacheKey)
+        const icon = cachedIcon ?? createLongDistanceTrainIcon(trainIconSize, isSelected)
+
+        if (!cachedIcon) {
+          longDistanceIconCache.set(iconCacheKey, icon)
+        }
+
+        return {
+          train,
+          trainKey,
+          isSelected,
+          icon,
+        }
+      }),
+    [selectedLongDistanceTrainKey, trainIconSize, visibleLongDistanceTrains],
+  )
+
   return (
-    <div className="relative h-full space-y-4">
-      {routeError ? <p className="text-sm text-destructive">{routeError}</p> : null}
-      {trainsError ? <p className="text-sm text-destructive">{trainsError}</p> : null}
-      {threadsError ? <p className="text-sm text-destructive">{threadsError}</p> : null}
-      {delaysError ? <p className="text-sm text-destructive">{delaysError}</p> : null}
-      {longDistanceTrainsError ? (
-        <p className="text-sm text-destructive">Не удалось загрузить поезда дальнего следования: {longDistanceTrainsError}</p>
+    <div className="relative h-full min-h-0">
+      {routeError || trainsError || threadsError || longDistanceTrainsError ? (
+        <div className="pointer-events-none absolute top-2 right-3 left-3 z-[1250] space-y-2 sm:top-3 sm:right-5 sm:left-auto sm:w-96 sm:max-w-[calc(100vw-2.5rem)]">
+          {routeError ? (
+            <p className="pointer-events-auto rounded-md border border-destructive/30 bg-card/95 px-3 py-2 text-sm text-destructive shadow-md backdrop-blur">
+              {routeError}
+            </p>
+          ) : null}
+          {trainsError ? (
+            <p className="pointer-events-auto rounded-md border border-destructive/30 bg-card/95 px-3 py-2 text-sm text-destructive shadow-md backdrop-blur">
+              {trainsError}
+            </p>
+          ) : null}
+          {threadsError ? (
+            <p className="pointer-events-auto rounded-md border border-destructive/30 bg-card/95 px-3 py-2 text-sm text-destructive shadow-md backdrop-blur">
+              {threadsError}
+            </p>
+          ) : null}
+          {longDistanceTrainsError ? (
+            <p className="pointer-events-auto rounded-md border border-destructive/30 bg-card/95 px-3 py-2 text-sm text-destructive shadow-md backdrop-blur">
+              Не удалось загрузить поезда дальнего следования: {longDistanceTrainsError}
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {!showLongDistanceTrains ? (
         <>
@@ -2131,8 +2151,8 @@ export function MapExample() {
                 : null
             }
             schedule={stationSchedule}
-            photos={currentStation?.esrCode ? stationPhotos : []}
-            isPhotosLoading={Boolean(currentStation?.esrCode) && isPhotosLoading}
+            photos={currentStation ? stationPhotos : []}
+            isPhotosLoading={Boolean(currentStation) && isPhotosLoading}
             onClose={closeStationSidebar}
           />
         </>
@@ -2196,12 +2216,12 @@ export function MapExample() {
             zIndex={320}
           />
         ) : null}
-        <div className="leaflet-top leaflet-left z-1000">
+        <div className="leaflet-top leaflet-left z-[1000] hidden sm:block">
           <div className="leaflet-control mt-3 ml-3">
             <label className="flex cursor-pointer items-center gap-3 rounded-md border border-border bg-card/95 px-3 py-2 text-sm font-medium shadow-md backdrop-blur transition hover:bg-accent">
               <Switch
                 checked={showLongDistanceTrains}
-                onCheckedChange={setShowLongDistanceTrains}
+                onCheckedChange={handleShowLongDistanceTrainsChange}
                 aria-label="Показать поезда дальнего следования"
               />
               <span>Поезда дальнего следования</span>
@@ -2224,7 +2244,7 @@ export function MapExample() {
               const upcomingRoute = isSelectedRoute ? selectedTrainRouteOverlay?.upcomingRoute : null
               const passedRoute = isSelectedRoute ? selectedTrainRouteOverlay?.passedRoute : null
               const overlayKeySuffix = currentTrainKey ?? "no-train"
-              const overlayMotionKey = `${overlayKeySuffix}-${Math.floor(clockTimestamp / 500)}`
+              const overlayMotionKey = `${overlayKeySuffix}-${Math.floor(clockTimestamp / CLOCK_TICK_MS)}`
 
               return [
                 <GeoJSON
@@ -2350,17 +2370,10 @@ export function MapExample() {
           </>
         ) : null}
 
-        {!showLongDistanceTrains && routeStations.map((station) => (
+        {!showLongDistanceTrains && renderedRouteStations.map(({ station, center }) => (
           <CircleMarker
             key={`${station.routeId}-${station.code}`}
-            center={(() => {
-              const snapped = snapToRoute(
-                [station.longitude, station.latitude],
-                routeDataById[station.routeId] ?? null,
-              )
-              const [lon, lat] = snapped.point
-              return [lat, lon] as [number, number]
-            })()}
+            center={center}
             radius={stationMarkerRadius}
             pathOptions={{
               color: station.color,
@@ -2376,7 +2389,7 @@ export function MapExample() {
                 setCurrentStationTitle(station.title)
                 setCurrentStation(station)
                 setStationPhotos([])
-                setIsPhotosLoading(Boolean(station.esrCode))
+                setIsPhotosLoading(true)
               },
             }}
           >
@@ -2392,27 +2405,11 @@ export function MapExample() {
           </CircleMarker>
         ))}
 
-        {!showLongDistanceTrains && trains.map((train) => {
-          const trainKey = trainInstanceKey(train)
-          const routeId = train.mcd_route_id ?? "mcd2"
-          const routeData = routeDataById[routeId] ?? null
-          const snapped = snapToRoute([train.longitude, train.latitude], routeData)
-          const [lon, lat] = snapped.point
-          const heading = resolveTrainHeading(train, snapped)
-          const isSelected = currentTrainKey === trainKey
-          const selectedColor = ROUTE_COLOR_BY_ID[routeId]
-          const delayDetails = getTrainDelayLabels(train)
-
+        {!showLongDistanceTrains && renderedSuburbanTrains.map(({ train, trainKey, position, isSelected, icon, delayDetails }) => {
           return (
             <Marker
-              position={[lat, lon]}
-              icon={createTrainIconWithSelection(
-                trainIconSrc(train),
-                heading,
-                trainIconSize,
-                isSelected,
-                selectedColor,
-              )}
+              position={position}
+              icon={icon}
               key={trainKey}
               zIndexOffset={isSelected ? 1000 : 0}
               eventHandlers={{
@@ -2448,15 +2445,12 @@ export function MapExample() {
           )
         })}
         {showLongDistanceTrains
-          ? visibleLongDistanceTrains.map((train) => {
-              const trainKey = longDistanceTrainKey(train)
-              const isSelected = selectedLongDistanceTrainKey === trainKey
-
+          ? renderedLongDistanceTrains.map(({ train, trainKey, isSelected, icon }) => {
               return (
                 <Marker
                   key={train.id}
                   position={[train.latitude, train.longitude]}
-                  icon={createLongDistanceTrainIcon(trainIconSize, isSelected)}
+                  icon={icon}
                   zIndexOffset={isSelected ? 1000 : 500}
                   eventHandlers={{
                     click: () => {

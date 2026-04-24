@@ -76,6 +76,15 @@ type CachedDelaysPayload = {
 
 let delaysCache: CachedDelaysPayload | null = null
 
+function emptyDelaysPayload(date: string, fetchedAt: number): CachedDelaysPayload {
+  return {
+    date,
+    fetchedAt,
+    delaysByUid: {},
+    notices: [],
+  }
+}
+
 function slugify(value: string): string {
   return value
     .trim()
@@ -214,6 +223,16 @@ function toLogPreview(value: unknown): string {
   }
 }
 
+function isLikelyCaptchaOrHtmlResponse(value: string): boolean {
+  const normalized = value.trim().toLowerCase()
+  return (
+    normalized.startsWith("<!doctype html") ||
+    normalized.startsWith("<html") ||
+    normalized.includes("captcha") ||
+    normalized.includes("вы не робот")
+  )
+}
+
 function decodeHtmlEntities(value: string): string {
   return value
     .replace(/&nbsp;/gi, " ")
@@ -270,22 +289,32 @@ async function fetchBatchDelays(date: string): Promise<{
   }
 
   if (!response.ok) {
-    console.error("[trains/delays] batch API returned non-OK response", {
+    if (isLikelyCaptchaOrHtmlResponse(responseText) || response.status === 403 || response.status === 429) {
+      console.warn("[trains/delays] upstream returned captcha or rate-limit response; using empty delays payload")
+      return { delaysByUid: {}, notices: [] }
+    }
+
+    console.warn("[trains/delays] batch API returned non-OK response", {
       status: response.status,
       body: toLogPreview(responseText),
     })
-    throw new Error(`Batch delays request failed with status ${response.status}`)
+    return { delaysByUid: {}, notices: [] }
   }
 
   let payload: BatchResponse
   try {
     payload = JSON.parse(responseText) as BatchResponse
   } catch (error) {
-    console.error("[trains/delays] batch API returned invalid JSON", {
-      error,
+    if (isLikelyCaptchaOrHtmlResponse(responseText)) {
+      console.warn("[trains/delays] upstream returned HTML/captcha instead of JSON; using empty delays payload")
+      return { delaysByUid: {}, notices: [] }
+    }
+
+    console.warn("[trains/delays] batch API returned invalid JSON; using empty delays payload", {
+      error: error instanceof Error ? error.message : String(error),
       body: toLogPreview(responseText),
     })
-    throw error
+    return { delaysByUid: {}, notices: [] }
   }
 
   const delaysByUid: Record<string, DelayPayload> = {}
@@ -353,15 +382,20 @@ async function getDelaysPayload(): Promise<CachedDelaysPayload> {
     return delaysCache
   }
 
-  const result = await fetchBatchDelays(today)
-  const payload = {
-    date: today,
-    fetchedAt: now,
-    delaysByUid: result.delaysByUid,
-    notices: result.notices,
+  try {
+    const result = await fetchBatchDelays(today)
+    const payload = {
+      date: today,
+      fetchedAt: now,
+      delaysByUid: result.delaysByUid,
+      notices: result.notices,
+    }
+    delaysCache = payload
+    return payload
+  } catch (error) {
+    console.warn("[trains/delays] fetch failed; using cached/empty payload", error)
+    return delaysCache?.date === today ? delaysCache : emptyDelaysPayload(today, now)
   }
-  delaysCache = payload
-  return payload
 }
 
 export async function GET() {
@@ -369,11 +403,9 @@ export async function GET() {
     const payload = await getDelaysPayload()
     return NextResponse.json(payload)
   } catch (error) {
-    const message = error instanceof Error ? error.message : "Failed to load train delays"
-    console.error("[trains/delays] failed to load delays", error)
-    return NextResponse.json(
-      { error: "Failed to load train delays", details: message },
-      { status: 500 },
-    )
+    const today = getTodayMoscowDate()
+    const now = Date.now()
+    console.warn("[trains/delays] failed to build payload; returning empty delays", error)
+    return NextResponse.json(delaysCache?.date === today ? delaysCache : emptyDelaysPayload(today, now))
   }
 }

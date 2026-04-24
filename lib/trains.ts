@@ -9,7 +9,6 @@ export type McdRouteId =
   | "mcd5_south"
   | "mcd5_north"
   | "mcd5_korolev"
-  | "mck"
 
 interface CarrierCodes {
   sirena: Nullable<string>

@@ -189,3 +189,36 @@
 .rzd-map .leaflet-control-zoom a:active {
   transform: scale(0.96);
 }
+
+.rzd-map .leaflet-control-attribution {
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--card) 90%, transparent);
+  box-shadow:
+    0 8px 16px -12px rgb(0 0 0 / 0.45),
+    0 3px 6px -4px rgb(0 0 0 / 0.3);
+  backdrop-filter: blur(8px);
+  padding: 0.2rem 0.5rem;
+  margin: 0 0.75rem 0.75rem 0;
+  max-width: min(84vw, 24rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rzd-map .leaflet-control-attribution a {
+  color: inherit;
+}
+
+@media (max-width: 639px) {
+  .rzd-map .leaflet-bottom.leaflet-right .leaflet-control-zoom {
+    margin-bottom: calc(env(safe-area-inset-bottom) + 5rem);
+    margin-right: 0.75rem;
+  }
+
+  .rzd-map .leaflet-bottom.leaflet-right .leaflet-control-attribution {
+    margin-bottom: calc(env(safe-area-inset-bottom) + 5rem);
+    margin-right: 0.75rem;
+    max-width: min(70vw, 18rem);
+  }
+}

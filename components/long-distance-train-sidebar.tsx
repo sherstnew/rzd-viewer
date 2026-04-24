@@ -55,14 +55,14 @@ export function LongDistanceTrainSidebar({
 
   return (
     <div
-      className={`absolute top-0 left-0 z-1200 h-full bg-card ${
+      className={`fixed inset-x-0 bottom-0 z-[1300] flex max-h-[85svh] w-full flex-col overflow-y-auto rounded-t-2xl border border-border bg-card p-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl transition-transform duration-300 md:absolute md:top-2 md:bottom-2 md:left-2 md:inset-x-auto md:max-h-none md:w-[min(24rem,calc(100vw-1.5rem))] md:rounded-xl md:p-5 md:pb-5 lg:top-0 lg:bottom-0 lg:left-0 lg:w-[min(28vw,28rem)] lg:rounded-none lg:border-none lg:shadow-none ${
         isOpen
-          ? "pointer-events-auto translate-x-0"
-          : "pointer-events-none -translate-x-full"
-      } flex w-full flex-col overflow-y-auto p-5 transition lg:w-1/4`}
+          ? "pointer-events-auto translate-y-0 md:translate-y-0 md:translate-x-0"
+          : "pointer-events-none translate-y-full md:translate-y-0 md:-translate-x-full"
+      }`}
     >
       <button
-        className="absolute top-3 right-3 z-30 flex size-9 items-center justify-center rounded-full bg-card/95 shadow-md"
+        className="absolute top-2 right-2 z-30 flex size-9 items-center justify-center rounded-full bg-card/95 shadow-md"
         onClick={onClose}
         type="button"
         aria-label="Закрыть сайдбар дальнего поезда"

@@ -132,7 +132,7 @@ export function Header() {
     <header className="relative z-50 border-b bg-background/80 backdrop-blur">
       <div className="flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
         <h1 className="min-w-0 truncate font-serif text-base font-semibold tracking-tight sm:text-lg">
-          Поезда поезда
+          Карта поездов
         </h1>
 
         <div className="flex shrink-0 items-center gap-2">
