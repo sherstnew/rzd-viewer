@@ -1,8 +1,6 @@
 services:
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: sherstnew/rzd-viewer:latest
     environment:
       NODE_ENV: production
       NEXT_TELEMETRY_DISABLED: "1"
