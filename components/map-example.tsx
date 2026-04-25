@@ -1,7 +1,7 @@
 "use client"
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react"
-import type { FeatureCollection, GeoJsonObject, LineString } from "geojson"
+import type { GeoJsonObject } from "geojson"
 import L from "leaflet"
 import {
   CircleMarker,
@@ -18,7 +18,7 @@ import { useTheme } from "next-themes"
 import { createRouteEngine } from "@/lib/route-engine"
 import { resolveTrainProgressByStops } from "@/lib/train-progress"
 import { findTrains, Train, TrainWithCoordinates } from "@/lib/trains"
-import { formatTrainDelay, getTrainDelayLabels } from "@/lib/train-delays"
+import { getTrainDelayLabels } from "@/lib/train-delays"
 import type { LongDistanceRoute, LongDistanceTrainObject } from "@/lib/long-distance-trains"
 import {
   isLongDistancePointInRussia,
@@ -30,25 +30,51 @@ import {
 import stationsData from "@/public/assets/stations.json"
 import moscowBigGeoJson from "@/public/assets/moscow-big.json"
 import { getNow } from "@/lib/runtime-mode"
+import {
+  bucketHeading,
+  CLOCK_TICK_MS,
+  FORCED_STATION_CODES_BY_ROUTE,
+  FORWARD_TERMINAL_BY_ROUTE,
+  LONG_DISTANCE_TRAINS_CACHE_TTL_MS,
+  LONG_DISTANCE_TRAINS_DEBOUNCE_MS,
+  LONG_DISTANCE_VIEWPORT_PRECISION,
+  MOSCOW_CENTER,
+  OPENRAILWAYMAP_ATTRIBUTION,
+  ROUTE_COLOR_BY_ID,
+  ROUTE_DEFINITIONS,
+  ROUTE_STATION_DISTANCE_THRESHOLD,
+  STATION_LABEL_ZOOM_THRESHOLD,
+  stationMarkerRadiusByZoom,
+  trainIconSizeByZoom,
+  VIDEO_SECTION_END_TITLE,
+  VIDEO_SECTION_START_TITLE,
+  YANDEX_LIVE_OBJECTS_URL,
+} from "@/lib/map-constants"
+import {
+  createLongDistanceTrainIcon,
+  createTrainIconWithSelection,
+  trainIconSrc,
+} from "@/lib/map-icons"
+import {
+  buildStationIndexes,
+  buildStationSchedule,
+  coordinateIndexValueFromProjection,
+  findNearestProjection,
+  nearestCoordinateIndex,
+  type LonLat,
+  type RouteDataById,
+  type RouteGeoJson,
+  type RouteId,
+  type RouteStation,
+  type StationCandidate,
+  type StationScheduleItem,
+} from "@/lib/map-utils"
 import { TrainSidebar } from "./train-sidebar"
 import { LongDistanceTrainSidebar } from "./long-distance-train-sidebar"
 import { StationSidebar, type StationPhotoItem } from "./station-sidebar"
 import { useCurrentTrainStore } from "@/stores/currentTrainStore"
 import { useTrainsStore } from "@/stores/trainsStore"
 import { Switch } from "@/components/ui/switch"
-
-const moscowCenter: [number, number] = [55.7558, 37.6173]
-
-type RouteGeoJson = FeatureCollection<LineString, { name: string }>
-type LonLat = [number, number]
-type RouteId =
-  | "mcd1"
-  | "mcd2"
-  | "mcd3"
-  | "mcd4"
-  | "mcd5_south"
-  | "mcd5_north"
-  | "mcd5_korolev"
 
 type SnappedPoint = {
   point: LonLat
@@ -57,49 +83,7 @@ type SnappedPoint = {
   segmentEnd: LonLat
 }
 
-type StationCoordinates = {
-  longitude: number
-  latitude: number
-}
 
-type StationCandidate = {
-  code: string
-  title: string
-  longitude: number
-  latitude: number
-  direction: string | null
-  esrCode: string | null
-}
-
-type RouteStation = {
-  routeId: RouteId
-  code: string
-  title: string
-  longitude: number
-  latitude: number
-  direction: string | null
-  esrCode: string | null
-}
-
-type RouteDefinition = {
-  id: RouteId
-  label: string
-  color: string
-  start?: LonLat
-  end?: LonLat
-}
-
-type NearestProjection = {
-  point: LonLat
-  distanceSq: number
-  segmentIndex: number
-  t: number
-  segmentStart: LonLat
-  segmentEnd: LonLat
-  headingDeg: number
-}
-
-type RouteDataById = Partial<Record<RouteId, RouteGeoJson>>
 type RouteStationsById = Record<RouteId, RouteStation[]>
 type RouteProgressOverlay = {
   routeId: RouteId
@@ -122,15 +106,6 @@ type SuburbanViewportBounds = {
   north: number
 }
 
-const LONG_DISTANCE_TRAINS_CACHE_TTL_MS = 60_000
-const LONG_DISTANCE_TRAINS_DEBOUNCE_MS = 350
-const LONG_DISTANCE_VIEWPORT_PRECISION = 3
-const CLOCK_TICK_MS = 1_000
-const TRAIN_HEADING_BUCKET_DEG = 10
-const YANDEX_LIVE_OBJECTS_URL = "https://rasp.yandex.ru/maps/train/objects"
-const OPENRAILWAYMAP_ATTRIBUTION =
-  '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>, Style: <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA 2.0</a> <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> and OpenStreetMap'
-
 const longDistanceTrainsCache = new Map<
   string,
   {
@@ -141,243 +116,8 @@ const longDistanceTrainsCache = new Map<
 const trainIconCache = new Map<string, L.DivIcon>()
 const longDistanceIconCache = new Map<string, L.DivIcon>()
 
-const TRAIN_ICON_SIZE_PX = 25
-const TRAIN_ICON_MIN_SIZE_PX = 10
-const TRAIN_ICON_MAX_SIZE_PX = 54
-const STATION_MARKER_SIZE_PX = 3
-const STATION_MARKER_MIN_SIZE_PX = 2
-const STATION_MARKER_MAX_SIZE_PX = 7
-const STATION_LABEL_ZOOM_THRESHOLD = 13
-const ROUTE_STATION_DISTANCE_THRESHOLD = 0.00025
-const STATION_SCHEDULE_WINDOW_MS = 60 * 60 * 1000
-const MCD1_ROUTE_COLOR = "#F6A500"
-const MCD2_ROUTE_COLOR = "#d55384"
-const MCD3_ROUTE_COLOR = "#E95B0C"
-const MCD4_ROUTE_COLOR = "#41B384"
-const MCD5_ROUTE_COLOR = "#77B729"
-const PODOLSK_STATION_CODE = "s9600731"
-const LOBNYA_STATION_CODE = "s9600781"
-const IPPODROM_STATION_CODE = "s9601197"
-const ZHELEZNODOROZHNAYA_STATION_CODE = "s9601675"
-const DOMODEDOVO_STATION_CODE = "s9600811"
-const PUSHKINO_STATION_CODE = "s9600701"
-const BOLSHEVO_STATION_CODE = "s9602217"
-const LYUBLINO_STATION_CODE = "s9601788"
-const VIDEO_SECTION_START_TITLE = "Красный Строитель"
-const VIDEO_SECTION_END_TITLE = "Подольск"
-
-const ROUTE_DEFINITIONS: RouteDefinition[] = [
-  {
-    id: "mcd1",
-    label: "МЦД-1",
-    color: MCD1_ROUTE_COLOR,
-    start: [37.28264496693386, 55.672407632018555],
-    end: [37.484721474868444, 56.01327444797851],
-  },
-  {
-    id: "mcd2",
-    label: "МЦД-2",
-    color: MCD2_ROUTE_COLOR,
-    start: [37.18482251289728, 55.841658030144124],
-    end: [37.56539830422924, 55.43156562773968],
-  },
-  {
-    id: "mcd3",
-    label: "МЦД-3",
-    color: MCD3_ROUTE_COLOR,
-    start: [37.173888, 55.980039],
-    end: [38.23932639021258, 55.560367089788535],
-  },
-  {
-    id: "mcd4",
-    label: "МЦД-4",
-    color: MCD4_ROUTE_COLOR,
-    start: [37.066874, 55.550152],
-    end: [38.00832, 55.752306],
-  },
-  {
-    id: "mcd5_south",
-    label: "МЦД-5",
-    color: MCD5_ROUTE_COLOR,
-    start: [37.640771, 55.729498],
-    end: [37.773381, 55.4399],
-  },
-  {
-    id: "mcd5_north",
-    label: "МЦД-5",
-    color: MCD5_ROUTE_COLOR,
-    start: [37.657484, 55.777685],
-    end: [37.839165, 56.012485],
-  },
-  {
-    id: "mcd5_korolev",
-    label: "МЦД-5",
-    color: MCD5_ROUTE_COLOR,
-    start: [37.761228, 55.914823],
-    end: [37.861022, 55.926201],
-  },
-]
-const FORWARD_TERMINAL_BY_ROUTE: Record<RouteId, string> = {
-  mcd1: LOBNYA_STATION_CODE,
-  mcd2: PODOLSK_STATION_CODE,
-  mcd3: IPPODROM_STATION_CODE,
-  mcd4: ZHELEZNODOROZHNAYA_STATION_CODE,
-  mcd5_south: DOMODEDOVO_STATION_CODE,
-  mcd5_north: PUSHKINO_STATION_CODE,
-  mcd5_korolev: BOLSHEVO_STATION_CODE,
-}
-const ROUTE_COLOR_BY_ID: Record<RouteId, string> = {
-  mcd1: MCD1_ROUTE_COLOR,
-  mcd2: MCD2_ROUTE_COLOR,
-  mcd3: MCD3_ROUTE_COLOR,
-  mcd4: MCD4_ROUTE_COLOR,
-  mcd5_south: MCD5_ROUTE_COLOR,
-  mcd5_north: MCD5_ROUTE_COLOR,
-  mcd5_korolev: MCD5_ROUTE_COLOR,
-}
-const FORCED_STATION_CODES_BY_ROUTE: Partial<Record<RouteId, readonly string[]>> = {
-  mcd2: [LYUBLINO_STATION_CODE],
-}
-
-function parseCoordinate(value: unknown): number | null {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return value
-  }
-
-  if (typeof value === "string") {
-    const normalized = value.trim().replace(",", ".")
-    const parsed = Number(normalized)
-    if (Number.isFinite(parsed)) {
-      return parsed
-    }
-  }
-
-  return null
-}
-
-function parseStationCode(value: unknown): string | null {
-  if (!value || typeof value !== "object") {
-    return null
-  }
-
-  const record = value as Record<string, unknown>
-  if (typeof record.yandex_code === "string" && record.yandex_code.length > 0) {
-    return record.yandex_code
-  }
-
-  return null
-}
-
-function parseDirection(value: unknown): string | null {
-  if (typeof value === "string" && value.trim().length > 0) {
-    return value.trim()
-  }
-
-  return null
-}
-
-function parseFirstEsrCode(value: unknown): string | null {
-  if (typeof value === "string" && value.trim().length > 0) {
-    return value.trim()
-  }
-
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return String(value)
-  }
-
-  if (Array.isArray(value)) {
-    for (const item of value) {
-      const parsed = parseFirstEsrCode(item)
-      if (parsed) {
-        return parsed
-      }
-    }
-  }
-
-  return null
-}
-
-const stationCoordinatesByCode = new Map<string, StationCoordinates>(
-  Array.isArray(stationsData)
-    ? stationsData.flatMap((station): Array<[string, StationCoordinates]> => {
-        const stationRecord = station as Record<string, unknown>
-        const code = parseStationCode(stationRecord.codes)
-        const longitude = parseCoordinate(stationRecord.longitude)
-        const latitude = parseCoordinate(stationRecord.latitude)
-
-        if (!code || longitude === null || latitude === null) {
-          return []
-        }
-
-        return [[code, { longitude, latitude }]]
-      })
-    : [],
-)
-
-const stationCoordinatesByTitle = new Map<string, StationCoordinates>(
-  Array.isArray(stationsData)
-    ? stationsData.flatMap((station): Array<[string, StationCoordinates]> => {
-        const stationRecord = station as Record<string, unknown>
-        const title = typeof stationRecord.title === "string" ? stationRecord.title : null
-        const longitude = parseCoordinate(stationRecord.longitude)
-        const latitude = parseCoordinate(stationRecord.latitude)
-
-        if (!title || longitude === null || latitude === null) {
-          return []
-        }
-
-        return [[title, { longitude, latitude }]]
-      })
-    : [],
-)
-
-const stationCandidates: StationCandidate[] = Array.isArray(stationsData)
-  ? stationsData.flatMap((station): StationCandidate[] => {
-      const stationRecord = station as Record<string, unknown>
-      if (stationRecord.transport_type !== "train") {
-        return []
-      }
-
-      const title = typeof stationRecord.title === "string" ? stationRecord.title : null
-      const code = parseStationCode(stationRecord.codes) ?? title
-      const longitude = parseCoordinate(stationRecord.longitude)
-      const latitude = parseCoordinate(stationRecord.latitude)
-      const direction = parseDirection(stationRecord.direction)
-      const esrCode = parseFirstEsrCode(
-        (stationRecord.codes as { esr_code?: unknown } | undefined)?.esr_code,
-      )
-
-      if (!code || !title || longitude === null || latitude === null) {
-        return []
-      }
-
-      return [{ code, title, longitude, latitude, direction, esrCode }]
-    })
-  : []
-function distanceSq(a: LonLat, b: LonLat): number {
-  const dx = a[0] - b[0]
-  const dy = a[1] - b[1]
-  return dx * dx + dy * dy
-}
-
-function nearestCoordinateIndex(target: LonLat, coordinates: LonLat[]): number {
-  let bestIndex = 0
-  let bestDistance = Number.POSITIVE_INFINITY
-
-  for (let i = 0; i < coordinates.length; i += 1) {
-    const d = distanceSq(target, coordinates[i])
-    if (d < bestDistance) {
-      bestDistance = d
-      bestIndex = i
-    }
-  }
-
-  return bestIndex
-}
-
-function coordinateIndexValueFromProjection(projection: NearestProjection): number {
-  return projection.segmentIndex + projection.t
-}
+const { stationCoordinatesByCode, stationCoordinatesByTitle, stationCandidates } =
+  buildStationIndexes(stationsData)
 
 function buildVideoSectionRoute(routeData: RouteGeoJson | null): RouteGeoJson | null {
   if (!routeData || routeData.features.length === 0) {
@@ -426,154 +166,6 @@ function buildVideoSectionRoute(routeData: RouteGeoJson | null): RouteGeoJson | 
   }
 }
 
-function projectPointToSegment(point: LonLat, a: LonLat, b: LonLat): LonLat {
-  const abx = b[0] - a[0]
-  const aby = b[1] - a[1]
-  const abLenSq = abx * abx + aby * aby
-
-  if (abLenSq === 0) {
-    return a
-  }
-
-  const apx = point[0] - a[0]
-  const apy = point[1] - a[1]
-  let t = (apx * abx + apy * aby) / abLenSq
-  t = Math.max(0, Math.min(1, t))
-
-  return [a[0] + abx * t, a[1] + aby * t]
-}
-
-function headingFromSegment(a: LonLat, b: LonLat): number {
-  const dx = b[0] - a[0]
-  const dy = b[1] - a[1]
-  const radians = Math.atan2(dx, dy)
-  const degrees = (radians * 180) / Math.PI
-  return (degrees + 360) % 360
-}
-
-function findNearestProjection(point: LonLat, routeData: RouteGeoJson | null): NearestProjection | null {
-  if (!routeData || routeData.features.length === 0) {
-    return null
-  }
-
-  const coordinates = routeData.features[0]?.geometry.coordinates ?? []
-  if (coordinates.length < 2) {
-    return null
-  }
-
-  let bestProjection: LonLat = point
-  let bestDistanceSq = Number.POSITIVE_INFINITY
-  let bestSegmentIndex = 0
-  let bestSegmentT = 0
-  let bestStart: LonLat = point
-  let bestEnd: LonLat = point
-
-  for (let i = 0; i < coordinates.length - 1; i += 1) {
-    const a: LonLat = [coordinates[i][0], coordinates[i][1]]
-    const b: LonLat = [coordinates[i + 1][0], coordinates[i + 1][1]]
-    const abx = b[0] - a[0]
-    const aby = b[1] - a[1]
-    const abLenSq = abx * abx + aby * aby
-    const apx = point[0] - a[0]
-    const apy = point[1] - a[1]
-    const rawT = abLenSq === 0 ? 0 : (apx * abx + apy * aby) / abLenSq
-    const t = Math.max(0, Math.min(1, rawT))
-    const projected = projectPointToSegment(point, a, b)
-    const d = distanceSq(point, projected)
-
-    if (d < bestDistanceSq) {
-      bestDistanceSq = d
-      bestProjection = projected
-      bestSegmentIndex = i
-      bestSegmentT = t
-      bestStart = a
-      bestEnd = b
-    }
-  }
-
-  return {
-    point: bestProjection,
-    distanceSq: bestDistanceSq,
-    segmentIndex: bestSegmentIndex,
-    t: bestSegmentT,
-    segmentStart: bestStart,
-    segmentEnd: bestEnd,
-    headingDeg: headingFromSegment(bestStart, bestEnd),
-  }
-}
-
-function createTrainIconWithSelection(
-  iconSrc: string,
-  headingDeg: number,
-  sizePx: number,
-  isSelected: boolean,
-  selectedColor: string,
-): L.DivIcon {
-  const correctedHeading = (headingDeg + 180) % 360
-  const shadow = isSelected
-    ? `filter:drop-shadow(0 0 3px ${selectedColor}) drop-shadow(0 0 8px ${selectedColor});`
-    : ""
-  const isRzdIcon = iconSrc.endsWith("/rzd.svg")
-  const isMostransIcon = iconSrc.endsWith("/mostrans.svg")
-  const logoMarkerSize = Math.round(sizePx * 0.78)
-  const logoMarkerBorderWidth = Math.max(1, Math.round(logoMarkerSize * 0.08))
-  const rzdLogoWidth = Math.round(logoMarkerSize * 0.6)
-  const mostransLogoSize = Math.round(logoMarkerSize * 0.46)
-  const mostransLogoPadding = Math.max(2, Math.round(logoMarkerSize * 0.1))
-  const iconHtml = isRzdIcon
-    ? `<div style="width:${sizePx}px;height:${sizePx}px;display:flex;align-items:center;justify-content:center;"><div style="width:${logoMarkerSize}px;height:${logoMarkerSize}px;transform:rotate(${correctedHeading - 45}deg);transform-origin:center center;border:${logoMarkerBorderWidth}px solid #000;border-radius:50% 50% 50% 0;background:#fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box;${shadow}"><img src="${iconSrc}" alt="Train" style="width:${rzdLogoWidth}px;height:auto;transform:rotate(45deg);object-fit:contain;" /></div></div>`
-    : isMostransIcon
-      ? `<div style="width:${sizePx}px;height:${sizePx}px;display:flex;align-items:center;justify-content:center;"><div style="width:${logoMarkerSize}px;height:${logoMarkerSize}px;transform:rotate(${correctedHeading - 45}deg);transform-origin:center center;border:${logoMarkerBorderWidth}px solid #000;border-radius:50% 50% 50% 0;background:#fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box;${shadow}"><div style="width:${mostransLogoSize + mostransLogoPadding * 2}px;height:${mostransLogoSize + mostransLogoPadding * 2}px;border-radius:999px;background:#fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box;padding:${mostransLogoPadding}px;transform:rotate(45deg);"><img src="${iconSrc}" alt="Train" style="width:${mostransLogoSize}px;height:${mostransLogoSize}px;object-fit:contain;" /></div></div>`
-    : `<img src="${iconSrc}" alt="Train" style="width:${sizePx}px;height:${sizePx}px;transform:rotate(${correctedHeading}deg);transform-origin:center center;object-fit:contain;${shadow}" />`
-
-  return L.divIcon({
-    className: "train-marker-wrapper",
-    iconSize: [sizePx, sizePx],
-    iconAnchor: [sizePx / 2, sizePx / 2],
-    html: iconHtml,
-  })
-}
-
-function createLongDistanceTrainIcon(sizePx: number, isSelected: boolean): L.DivIcon {
-  const markerSize = Math.round(sizePx * 0.86)
-  const logoWidth = Math.round(markerSize * 0.62)
-  const borderWidth = Math.max(1, Math.round(markerSize * 0.08))
-  const selectedShadow = isSelected
-    ? "box-shadow:0 0 0 3px rgba(228,45,36,.26),0 8px 18px rgba(0,0,0,.28);"
-    : "box-shadow:0 6px 14px rgba(0,0,0,.22);"
-
-  return L.divIcon({
-    className: "train-marker-wrapper",
-    iconSize: [sizePx, sizePx],
-    iconAnchor: [sizePx / 2, sizePx / 2],
-    html: `<div style="width:${sizePx}px;height:${sizePx}px;display:flex;align-items:center;justify-content:center;"><div style="width:${markerSize}px;height:${markerSize}px;border:${borderWidth}px solid ${isSelected ? "#E42D24" : "#202124"};border-radius:999px;background:#fff;display:flex;align-items:center;justify-content:center;box-sizing:border-box;${selectedShadow}"><img src="/leaflet/rzd.svg" alt="РЖД" style="width:${logoWidth}px;height:auto;object-fit:contain;" /></div></div>`,
-  })
-}
-
-function trainIconSizeByZoom(zoom: number): number {
-  const baselineZoom = 10
-  const size = TRAIN_ICON_SIZE_PX + (zoom - baselineZoom) * 2.4
-  return Math.round(Math.min(TRAIN_ICON_MAX_SIZE_PX, Math.max(TRAIN_ICON_MIN_SIZE_PX, size)))
-}
-
-function stationMarkerRadiusByZoom(zoom: number): number {
-  const baselineZoom = 10
-  const size = STATION_MARKER_SIZE_PX + (zoom - baselineZoom) * 0.32
-  return Math.min(STATION_MARKER_MAX_SIZE_PX, Math.max(STATION_MARKER_MIN_SIZE_PX, size))
-}
-
-type StationScheduleItem = {
-  key: string
-  timestamp: number
-  arrivalTimeLabel: string | null
-  departureTimeLabel: string | null
-  arrivalDelayLabel: string | null
-  departureDelayLabel: string | null
-  trainNumber: string
-  trainTitle: string
-  routeLabel: string
-}
-
 type StationPhotosDebug = {
   searchQueries?: string[]
   attempts?: Array<{
@@ -588,183 +180,6 @@ type StationPhotosDebug = {
   hasPhotosSection?: boolean
   figureCountInSection?: number
   htmlSnippet?: string
-}
-
-function toTimestamp(value: string | null | undefined): number | null {
-  if (!value) {
-    return null
-  }
-
-  const timestamp = new Date(value).getTime()
-  return Number.isFinite(timestamp) ? timestamp : null
-}
-
-function formatScheduleTime(timestamp: number): string {
-  return new Date(timestamp).toLocaleTimeString("ru-RU", {
-    hour: "2-digit",
-    minute: "2-digit",
-  })
-}
-
-function routeGroup(routeId: RouteId | undefined): string {
-  return routeId?.startsWith("mcd5_") ? "mcd5" : (routeId ?? "mcd2")
-}
-
-function buildStationSchedule(
-  station: Pick<RouteStation, "code" | "title" | "routeId">,
-  nowTimestamp: number,
-  segments: Train[],
-): StationScheduleItem[] {
-  const windowEnd = nowTimestamp + STATION_SCHEDULE_WINDOW_MS
-  const schedule: StationScheduleItem[] = []
-  const normalizedStationTitle = station.title.trim().toLowerCase()
-
-  for (const segment of segments) {
-    if (segment.mcd_route_id && routeGroup(segment.mcd_route_id) !== routeGroup(station.routeId)) {
-      continue
-    }
-
-    const segmentDeparture = toTimestamp(segment.departure)
-    const segmentArrival = toTimestamp(segment.arrival)
-    if (segmentDeparture === null || segmentArrival === null) {
-      continue
-    }
-
-    const intersectsWindow = segmentArrival >= nowTimestamp && segmentDeparture <= windowEnd
-    if (!intersectsWindow) {
-      continue
-    }
-
-    const routeLabel = `${segment.from.title} - ${segment.to.title}`
-    const stops = segment.thread_route?.stops ?? []
-    let matchedStopArrivalTimestamp: number | null = null
-    let matchedStopDepartureTimestamp: number | null = null
-    let matchedStopArrivalDelayLabel: string | null = null
-    let matchedStopDepartureDelayLabel: string | null = null
-    let hasMatchedStop = false
-
-    for (let i = 0; i < stops.length; i += 1) {
-      const stop = stops[i]
-      const stopTitle = stop.station.title.trim().toLowerCase()
-      const isSameStation =
-        stop.station.code === station.code || stopTitle === normalizedStationTitle
-      if (!isSameStation) {
-        continue
-      }
-
-      hasMatchedStop = true
-
-      const arrivalTimestamp = toTimestamp(stop.arrival)
-      if (
-        arrivalTimestamp !== null &&
-        arrivalTimestamp >= nowTimestamp &&
-        arrivalTimestamp <= windowEnd
-      ) {
-        matchedStopArrivalTimestamp = arrivalTimestamp
-        matchedStopArrivalDelayLabel =
-          stop.station.code === segment.to.code ? formatTrainDelay(segment, "arrival") : null
-      }
-
-      const departureTimestamp = toTimestamp(stop.departure)
-      if (
-        departureTimestamp !== null &&
-        departureTimestamp >= nowTimestamp &&
-        departureTimestamp <= windowEnd
-      ) {
-        matchedStopDepartureTimestamp = departureTimestamp
-        matchedStopDepartureDelayLabel =
-          stop.station.code === segment.from.code ? formatTrainDelay(segment, "departure") : null
-      }
-    }
-
-    if (
-      hasMatchedStop &&
-      (matchedStopArrivalTimestamp !== null || matchedStopDepartureTimestamp !== null)
-    ) {
-      const sortTimestamp = Math.min(
-        matchedStopArrivalTimestamp ?? Number.POSITIVE_INFINITY,
-        matchedStopDepartureTimestamp ?? Number.POSITIVE_INFINITY,
-      )
-
-      schedule.push({
-        key: `${segment.thread.uid}-${sortTimestamp}`,
-        timestamp: sortTimestamp,
-        arrivalTimeLabel:
-          matchedStopArrivalTimestamp !== null
-            ? formatScheduleTime(matchedStopArrivalTimestamp)
-            : null,
-        departureTimeLabel:
-          matchedStopDepartureTimestamp !== null
-            ? formatScheduleTime(matchedStopDepartureTimestamp)
-            : null,
-        arrivalDelayLabel: matchedStopArrivalDelayLabel,
-        departureDelayLabel: matchedStopDepartureDelayLabel,
-        trainNumber: segment.thread.number,
-        trainTitle: segment.thread.title,
-        routeLabel,
-      })
-    }
-
-    if (hasMatchedStop) {
-      continue
-    }
-
-    const isFromStation =
-      segment.from.code === station.code ||
-      segment.from.title.trim().toLowerCase() === normalizedStationTitle
-    const isToStation =
-      segment.to.code === station.code ||
-      segment.to.title.trim().toLowerCase() === normalizedStationTitle
-
-    if (isFromStation && segmentDeparture >= nowTimestamp && segmentDeparture <= windowEnd) {
-      schedule.push({
-        key: `${segment.thread.uid}-segment-departure-${segmentDeparture}`,
-        timestamp: segmentDeparture,
-        arrivalTimeLabel: null,
-        departureTimeLabel: formatScheduleTime(segmentDeparture),
-        arrivalDelayLabel: null,
-        departureDelayLabel: formatTrainDelay(segment, "departure"),
-        trainNumber: segment.thread.number,
-        trainTitle: segment.thread.title,
-        routeLabel,
-      })
-    }
-
-    if (isToStation && segmentArrival >= nowTimestamp && segmentArrival <= windowEnd) {
-      schedule.push({
-        key: `${segment.thread.uid}-segment-arrival-${segmentArrival}`,
-        timestamp: segmentArrival,
-        arrivalTimeLabel: formatScheduleTime(segmentArrival),
-        departureTimeLabel: null,
-        arrivalDelayLabel: formatTrainDelay(segment, "arrival"),
-        departureDelayLabel: null,
-        trainNumber: segment.thread.number,
-        trainTitle: segment.thread.title,
-        routeLabel,
-      })
-    }
-  }
-
-  schedule.sort((left, right) => left.timestamp - right.timestamp)
-  return schedule
-}
-
-function trainIconSrc(train: TrainWithCoordinates): string {
-  const subtypeTitle = train.thread.transport_subtype?.title?.toLowerCase() ?? ""
-
-  if (subtypeTitle.includes("иволга") || subtypeTitle.includes("ivolga")) {
-    return "/leaflet/ivolga.svg"
-  }
-
-  if (subtypeTitle.includes("стандарт плюс") || subtypeTitle.includes("standard plus")) {
-    return "/leaflet/standart.svg"
-  }
-
-  if (subtypeTitle.includes("ласточка") || subtypeTitle.includes("lastochka")) {
-    return "/leaflet/mostrans.svg"
-  }
-
-  return "/leaflet/rzd.svg"
 }
 
 function trainInstanceKey(train: Pick<Train, "thread" | "departure" | "arrival">): string {
@@ -1126,10 +541,6 @@ function MapZoomWatcher({ onZoomChange }: { onZoomChange: (zoom: number) => void
   }, [map, onZoomChange])
 
   return null
-}
-
-function bucketHeading(heading: number): number {
-  return Math.round(heading / TRAIN_HEADING_BUCKET_DEG) * TRAIN_HEADING_BUCKET_DEG
 }
 
 function SuburbanViewportWatcher({
@@ -2166,7 +1577,7 @@ export function MapExample() {
         />
       )}
       <MapContainer
-        center={moscowCenter}
+        center={MOSCOW_CENTER}
         zoom={10}
         className="rzd-map relative z-0 h-full w-full rounded-xl"
         scrollWheelZoom
@@ -2494,3 +1905,6 @@ export function MapExample() {
     </div>
   )
 }
+
+
+

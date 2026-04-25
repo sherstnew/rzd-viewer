@@ -1,4 +1,4 @@
-"use client"
+﻿"use client"
 
 import { type ReactNode, useEffect, useState } from "react"
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
@@ -45,16 +45,6 @@ export function ResponsiveSidebarShell({
 
   return (
     <>
-      <button
-        type="button"
-        aria-label={`Закрыть ${title}`}
-        className={cn(
-          "hidden md:block fixed inset-0 z-[1290] bg-black/10 transition-opacity",
-          open ? "pointer-events-auto opacity-100" : "pointer-events-none opacity-0",
-        )}
-        onClick={onClose}
-      />
-
       <div
         className={cn(
           DESKTOP_PANEL_CLASSES,

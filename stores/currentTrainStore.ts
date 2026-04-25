@@ -24,22 +24,10 @@ export const useCurrentTrainStore = create<CurrentTrainStore>((set) => ({
   showLongDistanceTrains: false,
   visibleLongDistanceTrains: [],
   selectedLongDistanceTrain: null,
-  setCurrentTrain: (currentTrain) => {
-    set({ currentTrain: currentTrain })
-  },
-  setCurrentStationTitle: (currentStationTitle) => {
-    set({ currentStationTitle })
-  },
-  setRouteStationTitles: (routeStationTitles) => {
-    set({ routeStationTitles })
-  },
-  setShowLongDistanceTrains: (showLongDistanceTrains) => {
-    set({ showLongDistanceTrains })
-  },
-  setVisibleLongDistanceTrains: (trains) => {
-    set({ visibleLongDistanceTrains: trains })
-  },
-  setSelectedLongDistanceTrain: (train) => {
-    set({ selectedLongDistanceTrain: train })
-  },
+  setCurrentTrain: (currentTrain) => set({ currentTrain }),
+  setCurrentStationTitle: (currentStationTitle) => set({ currentStationTitle }),
+  setRouteStationTitles: (routeStationTitles) => set({ routeStationTitles }),
+  setShowLongDistanceTrains: (showLongDistanceTrains) => set({ showLongDistanceTrains }),
+  setVisibleLongDistanceTrains: (visibleLongDistanceTrains) => set({ visibleLongDistanceTrains }),
+  setSelectedLongDistanceTrain: (selectedLongDistanceTrain) => set({ selectedLongDistanceTrain }),
 }))

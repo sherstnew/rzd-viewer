@@ -1,4 +1,4 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 @import "leaflet/dist/leaflet.css";
@@ -210,6 +210,93 @@
   color: inherit;
 }
 
+.train-marker {
+  width: var(--train-size);
+  height: var(--train-size);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.train-marker.is-selected {
+  filter: drop-shadow(0 0 3px var(--train-selected-color, #e42d24))
+    drop-shadow(0 0 8px var(--train-selected-color, #e42d24));
+}
+
+.train-marker--generic .train-marker__icon {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  transform: rotate(var(--train-rotation));
+  transform-origin: center center;
+}
+
+.train-marker--pin .train-marker__pin-shell {
+  width: calc(var(--train-size) * 0.78);
+  height: calc(var(--train-size) * 0.78);
+  transform: rotate(calc(var(--train-rotation) - 45deg));
+  transform-origin: center center;
+  border: max(1px, calc(var(--train-size) * 0.06)) solid #000;
+  border-radius: 50% 50% 50% 0;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.train-marker__logo--rzd {
+  width: calc(var(--train-size) * 0.37);
+  height: auto;
+  object-fit: contain;
+  transform: rotate(45deg);
+}
+
+.train-marker__mostrans-badge {
+  width: calc(var(--train-size) * 0.53);
+  height: calc(var(--train-size) * 0.53);
+  border-radius: 999px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transform: rotate(45deg);
+}
+
+.train-marker__logo--mostrans {
+  width: calc(var(--train-size) * 0.36);
+  height: calc(var(--train-size) * 0.36);
+  object-fit: contain;
+}
+
+.train-marker--long-distance .train-marker__ld-shell {
+  width: calc(var(--train-size) * 0.86);
+  height: calc(var(--train-size) * 0.86);
+  border: max(1px, calc(var(--train-size) * 0.08)) solid #202124;
+  border-radius: 999px;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  overflow: hidden;
+  box-shadow: 0 6px 14px rgb(0 0 0 / 0.22);
+}
+
+.train-marker--long-distance.is-selected .train-marker__ld-shell {
+  border-color: #e42d24;
+  box-shadow: 0 0 0 3px rgb(228 45 36 / 0.26), 0 8px 18px rgb(0 0 0 / 0.28);
+}
+
+.train-marker__ld-logo {
+  width: calc(var(--train-size) * 0.42);
+  height: auto;
+  max-width: 72%;
+  max-height: 72%;
+  object-fit: contain;
+}
+
 @media (max-width: 639px) {
   .rzd-map .leaflet-bottom.leaflet-right .leaflet-control-zoom {
     margin-bottom: calc(env(safe-area-inset-bottom) + 5rem);
@@ -222,3 +309,4 @@
     max-width: min(70vw, 18rem);
   }
 }
+
