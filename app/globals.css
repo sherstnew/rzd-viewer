@@ -217,7 +217,7 @@
   }
 
   .rzd-map .leaflet-bottom.leaflet-right .leaflet-control-attribution {
-    margin-bottom: calc(env(safe-area-inset-bottom) + 5rem);
+    margin-bottom: calc(env(safe-area-inset-bottom) + 4rem);
     margin-right: 0.75rem;
     max-width: min(70vw, 18rem);
   }

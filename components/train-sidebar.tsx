@@ -8,6 +8,7 @@ import { getNow } from "@/lib/runtime-mode";
 import { useTrainsStore } from "@/stores/trainsStore";
 import { getTrainDelayLabels } from "@/lib/train-delays";
 import { formatDurationToRu } from "@/lib/utils";
+import { ResponsiveSidebarShell } from "@/components/responsive-sidebar-shell";
 import { useCurrentTrainStore } from "@/stores/currentTrainStore";
 import { X } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -494,14 +495,12 @@ export function TrainSidebar() {
     }
 
     return (
-        <>
-            <div
-                className={`fixed inset-x-0 bottom-0 z-[1300] flex max-h-[85svh] w-full flex-col overflow-y-auto rounded-t-2xl border border-border bg-card p-5 pb-[calc(env(safe-area-inset-bottom)+1rem)] shadow-2xl transition-transform duration-300 md:absolute md:top-2 md:bottom-2 md:left-2 md:inset-x-auto md:max-h-none md:w-[min(24rem,calc(100vw-1.5rem))] md:rounded-xl md:p-5 md:pb-5 lg:top-0 lg:bottom-0 lg:left-0 lg:w-[min(28vw,28rem)] lg:rounded-none lg:border-none lg:shadow-none ${
-                    currentTrain
-                        ? "pointer-events-auto translate-y-0 md:translate-y-0 md:translate-x-0"
-                        : "pointer-events-none translate-y-full md:translate-y-0 md:-translate-x-full"
-                }`}
-            >
+        <ResponsiveSidebarShell
+            open={Boolean(currentTrain)}
+            onClose={() => setCurrentTrain(null)}
+            title="сайдбар поезда"
+            mobileClassName="border-0 bg-transparent shadow-none"
+        >
                 <button
                     className="absolute top-2 right-2 z-30 flex size-9 items-center justify-center rounded-full bg-card/95 shadow-md"
                     onClick={() => setCurrentTrain(null)}
@@ -589,7 +588,6 @@ export function TrainSidebar() {
                         })}
                     </div>
                 </div>
-            </div>
-        </>
+        </ResponsiveSidebarShell>
     );
 }

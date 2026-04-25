@@ -518,8 +518,8 @@ const RZD_ROUTE_NUMBER_SUFFIXES: Record<string, string> = {
   YE: "EI",
   YA: "JA",
   QI: "YJ",
-  ZH: "JI",
-  Ж: "JI",
+  JI: "ZH",
+  Ж: "ZH",
   A: "AJ",
   S: "SJ",
   U: "UJ",
@@ -581,4 +581,5 @@ export function normalizeLongDistanceRouteRequestNumber(number: string): string 
 
   return trimmed
 }
+
 
