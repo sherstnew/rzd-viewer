@@ -4,9 +4,15 @@ import type { TrainWithCoordinates } from "@/lib/trains"
 
 const RZD_LOGO_SIZE_PX = 15
 const LONG_DISTANCE_RZD_LOGO_SIZE_PX = 14
+const REX_LOGO_SIZE_PX = 18
 
 export function trainIconSrc(train: TrainWithCoordinates): string {
+  const subtypeCode = train.thread.transport_subtype?.code?.toLowerCase() ?? ""
   const subtypeTitle = train.thread.transport_subtype?.title?.toLowerCase() ?? ""
+
+  if (subtypeCode === "rex" || subtypeTitle.includes("рэкс") || subtypeTitle.includes("rex")) {
+    return "/leaflet/rex.png"
+  }
 
   if (subtypeTitle.includes("иволга") || subtypeTitle.includes("ivolga")) {
     return "/leaflet/ivolga.svg"
@@ -39,6 +45,7 @@ export function createTrainIconWithSelection(
   const correctedHeading = (headingDeg + 180) % 360
   const isRzdIcon = iconSrc.endsWith("/rzd.svg")
   const isMostransIcon = iconSrc.endsWith("/mostrans.svg")
+  const isRexIcon = iconSrc.endsWith("/rex.png")
 
   const classes = ["train-marker", isSelected ? "is-selected" : ""].filter(Boolean).join(" ")
 
@@ -52,9 +59,11 @@ export function createTrainIconWithSelection(
     ? `<div class="train-marker__pin-shell"><img src="${iconSrc}" alt="Train" class="train-marker__logo train-marker__logo--rzd" style="width:${RZD_LOGO_SIZE_PX}px;height:${RZD_LOGO_SIZE_PX}px" /></div>`
     : isMostransIcon
       ? `<div class="train-marker__pin-shell"><div class="train-marker__mostrans-badge"><img src="${iconSrc}" alt="Train" class="train-marker__logo train-marker__logo--mostrans" /></div></div>`
+      : isRexIcon
+        ? `<div class="train-marker__pin-shell"><img src="${iconSrc}" alt="Train" class="train-marker__logo train-marker__logo--rex" style="width:${REX_LOGO_SIZE_PX}px;height:${REX_LOGO_SIZE_PX}px" /></div>`
       : `<img src="${iconSrc}" alt="Train" class="train-marker__icon" />`
 
-  const variantClass = isRzdIcon || isMostransIcon ? "train-marker--pin" : "train-marker--generic"
+  const variantClass = isRzdIcon || isMostransIcon || isRexIcon ? "train-marker--pin" : "train-marker--generic"
 
   return L.divIcon({
     className: "train-marker-wrapper",

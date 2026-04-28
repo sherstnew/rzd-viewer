@@ -270,6 +270,13 @@
   object-fit: contain;
 }
 
+.train-marker__logo--rex {
+  width: calc(var(--train-size) * 0.46);
+  height: calc(var(--train-size) * 0.46);
+  object-fit: contain;
+  transform: rotate(45deg);
+}
+
 .train-marker--long-distance .train-marker__ld-shell {
   width: calc(var(--train-size) * 0.86);
   height: calc(var(--train-size) * 0.86);
