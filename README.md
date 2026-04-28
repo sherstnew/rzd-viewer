@@ -23,6 +23,31 @@
 - npm 10+
 - Docker (необязательно, для запуска в контейнере)
 
+## Переменные окружения
+
+Для исходящих запросов к `rzd.ru` и Яндекс Расписаниям можно указать HTTP proxy в `.env`.
+
+Вариант 1, одной строкой:
+
+```env
+UPSTREAM_HTTP_PROXY_URL=http://LOGIN:PASSWORD@HOST:PORT
+```
+
+Если в логине или пароле есть специальные символы (`@`, `:`, `/`, `#`), их нужно URL-encode-ить.
+Например, пароль `pa:ss@word` должен быть записан как `pa%3Ass%40word`.
+
+Вариант 2, отдельными полями:
+
+```env
+UPSTREAM_PROXY_PROTOCOL=http
+UPSTREAM_PROXY_HOST=proxy.example.com
+UPSTREAM_PROXY_PORT=8080
+UPSTREAM_PROXY_USERNAME=my-login
+UPSTREAM_PROXY_PASSWORD=my-password
+```
+
+Поддерживаются и стандартные переменные `HTTP_PROXY`, `HTTPS_PROXY`, `HTTP_PROXY_URL`, но приоритет у `UPSTREAM_HTTP_PROXY_URL`.
+
 ## Локальный запуск
 
 1. Установить зависимости:

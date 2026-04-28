@@ -3,6 +3,7 @@ import {
   normalizeLongDistanceLiveObjects,
   type YandexLiveObjectsPayload,
 } from "@/lib/long-distance-trains"
+import { fetchTextWithProxy } from "@/lib/proxy-http"
 
 const YANDEX_LIVE_OBJECTS_URL = "https://rasp.yandex.ru/maps/train/objects"
 const LIVE_OBJECTS_CACHE_TTL_MS = 60_000
@@ -142,20 +143,17 @@ export async function GET(request: Request) {
   url.searchParams.set("_", String(Date.now()))
 
   try {
-    const response = await fetch(url, {
-      cache: "no-store",
+    const response = await fetchTextWithProxy(url, {
       headers: {
         accept: "application/javascript,text/javascript,*/*;q=0.1",
       },
     })
 
     if (!response.ok) {
-      const text = await response.text()
-      throw new Error(`Live objects request failed (${response.status}): ${text.slice(0, 200)}`)
+      throw new Error(`Live objects request failed (${response.status}): ${response.text.slice(0, 200)}`)
     }
 
-    const text = await response.text()
-    const payload = parseJsonpPayload(text, callback)
+    const payload = parseJsonpPayload(response.text, callback)
     const trains = normalizeLongDistanceLiveObjects(payload)
     liveObjectsCache.set(cacheKey, {
       fetchedAt: Date.now(),

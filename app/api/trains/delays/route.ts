@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server"
+import { fetchTextWithProxy } from "@/lib/proxy-http"
 import stationsData from "@/public/assets/stations.json"
 import type { TrainDelayEvent } from "@/lib/trains"
 
@@ -270,32 +271,32 @@ async function fetchBatchDelays(date: string): Promise<{
     methods: SEARCH_DIRECTIONS.map((direction) => buildBatchSearchMethod(direction, date)),
   })
 
-  let response: Response
+  let responseStatus = 0
   let responseText = ""
 
   try {
-    response = await fetch(YANDEX_BATCH_URL, {
+    const response = await fetchTextWithProxy(YANDEX_BATCH_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body,
-      cache: "no-store",
     })
-    responseText = await response.text()
+    responseStatus = response.status
+    responseText = response.text
   } catch (error) {
     console.error("[trains/delays] batch request failed", error)
     throw error
   }
 
-  if (!response.ok) {
-    if (isLikelyCaptchaOrHtmlResponse(responseText) || response.status === 403 || response.status === 429) {
+  if (responseStatus < 200 || responseStatus >= 300) {
+    if (isLikelyCaptchaOrHtmlResponse(responseText) || responseStatus === 403 || responseStatus === 429) {
       console.warn("[trains/delays] upstream returned captcha or rate-limit response; using empty delays payload")
       return { delaysByUid: {}, notices: [] }
     }
 
     console.warn("[trains/delays] batch API returned non-OK response", {
-      status: response.status,
+      status: responseStatus,
       body: toLogPreview(responseText),
     })
     return { delaysByUid: {}, notices: [] }
