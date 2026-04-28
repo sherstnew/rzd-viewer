@@ -47,37 +47,16 @@ export function StationSidebar({
     isPhotosLoading,
     onClose,
 }: StationSidebarProps) {
-    const [renderedStation, setRenderedStation] =
-        useState<StationSidebarProps["station"]>(station);
-    const [renderedSchedule, setRenderedSchedule] = useState(schedule);
-    const [renderedPhotos, setRenderedPhotos] = useState(photos);
-    const [renderedIsPhotosLoading, setRenderedIsPhotosLoading] =
-        useState(isPhotosLoading);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [isCurrentImageLoading, setIsCurrentImageLoading] = useState(true);
     const [isLightboxImageLoading, setIsLightboxImageLoading] = useState(true);
 
-    if (
-        station &&
-        (station !== renderedStation ||
-            schedule !== renderedSchedule ||
-            photos !== renderedPhotos ||
-            isPhotosLoading !== renderedIsPhotosLoading)
-    ) {
-        setRenderedStation(station);
-        setRenderedSchedule(schedule);
-        setRenderedPhotos(photos);
-        setRenderedIsPhotosLoading(isPhotosLoading);
-    }
-
     const isOpen = Boolean(station);
-    const visibleStation = station ?? renderedStation;
-    const visibleSchedule = station ? schedule : renderedSchedule;
-    const visiblePhotos = station ? photos : renderedPhotos;
-    const visibleIsPhotosLoading = station
-        ? isPhotosLoading
-        : renderedIsPhotosLoading;
+    const visibleStation = station;
+    const visibleSchedule = schedule;
+    const visiblePhotos = photos;
+    const visibleIsPhotosLoading = isPhotosLoading;
 
     useEffect(() => {
         const resetId = window.setTimeout(() => {

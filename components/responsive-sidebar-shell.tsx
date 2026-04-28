@@ -1,6 +1,6 @@
 ﻿"use client"
 
-import { type ReactNode, useEffect, useState } from "react"
+import { type ReactNode, useCallback, useEffect, useState } from "react"
 import { Drawer, DrawerContent, DrawerTitle } from "@/components/ui/drawer"
 import { cn } from "@/lib/utils"
 
@@ -28,6 +28,15 @@ export function ResponsiveSidebarShell({
   mobileClassName,
 }: ResponsiveSidebarShellProps) {
   const [isDesktop, setIsDesktop] = useState(false)
+  const mobileOpen = !isDesktop && open
+  const handleMobileOpenChange = useCallback(
+    (nextOpen: boolean) => {
+      if (mobileOpen && !nextOpen) {
+        onClose()
+      }
+    },
+    [mobileOpen, onClose],
+  )
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(min-width: 768px)")
@@ -55,7 +64,7 @@ export function ResponsiveSidebarShell({
         {children}
       </div>
 
-      <Drawer open={!isDesktop && open} onOpenChange={(nextOpen) => !nextOpen && onClose()}>
+      <Drawer open={mobileOpen} onOpenChange={handleMobileOpenChange}>
         <DrawerContent className={cn("p-0", mobileClassName)}>
           <DrawerTitle className="sr-only">{title}</DrawerTitle>
           <div className={MOBILE_PANEL_CLASSES}>{children}</div>
