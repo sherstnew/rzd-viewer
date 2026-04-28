@@ -2,7 +2,7 @@
 
 import { ResponsiveSidebarShell } from "@/components/responsive-sidebar-shell";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
 
 type StationScheduleItem = {
     key: string;
@@ -52,6 +52,17 @@ export function StationSidebar({
     const visibleSchedule = schedule;
     const visiblePhotos = photos;
     const visibleIsPhotosLoading = isPhotosLoading;
+
+    const closeLightbox = () => {
+        setIsLightboxOpen(false);
+        setIsLightboxImageLoading(true);
+    };
+
+    const handleLightboxDismiss = (event: MouseEvent<HTMLElement>) => {
+        event.preventDefault();
+        event.stopPropagation();
+        closeLightbox();
+    };
 
     useEffect(() => {
         const resetId = window.setTimeout(() => {
@@ -113,6 +124,19 @@ export function StationSidebar({
         };
     }, [isLightboxOpen, visiblePhotos.length]);
 
+    useEffect(() => {
+        if (!isLightboxOpen) {
+            return;
+        }
+
+        const previousOverflow = document.body.style.overflow;
+        document.body.style.overflow = "hidden";
+
+        return () => {
+            document.body.style.overflow = previousOverflow;
+        };
+    }, [isLightboxOpen]);
+
     if (!visibleStation) {
         return null;
     }
@@ -153,7 +177,9 @@ export function StationSidebar({
                                 <button
                                     className="block h-56 w-full cursor-zoom-in"
                                     type="button"
-                                    onClick={() => {
+                                    onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
                                         setIsLightboxOpen(true);
                                         setIsLightboxImageLoading(true);
                                     }}
@@ -186,7 +212,9 @@ export function StationSidebar({
                                         <button
                                             className="absolute top-1/2 left-2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-card/95 shadow-md"
                                             type="button"
-                                            onClick={() => {
+                                            onClick={(event) => {
+                                                event.preventDefault();
+                                                event.stopPropagation();
                                                 setCurrentPhotoIndex(
                                                     (prev) =>
                                                         (prev -
@@ -203,7 +231,9 @@ export function StationSidebar({
                                         <button
                                             className="absolute top-1/2 right-2 flex size-10 -translate-y-1/2 items-center justify-center rounded-full bg-card/95 shadow-md"
                                             type="button"
-                                            onClick={() => {
+                                            onClick={(event) => {
+                                                event.preventDefault();
+                                                event.stopPropagation();
                                                 setCurrentPhotoIndex(
                                                     (prev) =>
                                                         (prev + 1) %
@@ -310,40 +340,42 @@ export function StationSidebar({
                     className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/80 p-4"
                     role="dialog"
                     aria-modal="true"
-                    onClick={() => setIsLightboxOpen(false)}
+                    onClick={handleLightboxDismiss}
                 >
                     <div
-                        className="relative max-h-full w-full max-w-4xl"
+                        className="relative w-full max-w-4xl"
                         onClick={(event) => event.stopPropagation()}
                     >
                         <button
-                            className="absolute top-2 right-2 z-10 rounded-full bg-card px-3 py-1 text-sm"
+                            className="absolute top-3 right-3 z-20 rounded-full bg-card px-3 py-1 text-sm shadow-md"
                             type="button"
-                            onClick={() => setIsLightboxOpen(false)}
+                            onClick={handleLightboxDismiss}
                         >
                             Закрыть
                         </button>
 
-                        {isLightboxImageLoading ? (
-                            <div className="relative flex h-[50vh] w-full items-center justify-center rounded-lg bg-black/20">
-                                {currentPreviewImageUrl ? (
-                                    <img
-                                        src={currentPreviewImageUrl}
-                                        alt={`Превью станции ${visibleStation.title}`}
-                                        className="absolute inset-0 h-full w-full object-contain opacity-70"
-                                        loading="lazy"
-                                    />
-                                ) : null}
-                                <div className="size-10 animate-spin rounded-full border-2 border-white/35 border-t-white" />
-                            </div>
-                        ) : null}
-                        <img
-                            src={currentImageUrl}
-                            alt={`Фото станции ${visibleStation.title}`}
-                            className={`max-h-[80vh] w-full rounded-lg object-contain ${isLightboxImageLoading ? "hidden" : ""}`}
-                            onLoad={() => setIsLightboxImageLoading(false)}
-                            onError={() => setIsLightboxImageLoading(false)}
-                        />
+                        <div className="relative h-[80vh] max-h-[42rem] min-h-[18rem] w-full overflow-hidden rounded-lg bg-black/20">
+                            {currentPreviewImageUrl ? (
+                                <img
+                                    src={currentPreviewImageUrl}
+                                    alt={`Превью станции ${visibleStation.title}`}
+                                    className="absolute inset-0 h-full w-full object-contain opacity-70"
+                                    loading="lazy"
+                                />
+                            ) : null}
+                            {isLightboxImageLoading ? (
+                                <div className="absolute inset-0 flex items-center justify-center bg-black/10">
+                                    <div className="size-10 animate-spin rounded-full border-2 border-white/35 border-t-white" />
+                                </div>
+                            ) : null}
+                            <img
+                                src={currentImageUrl}
+                                alt={`Фото станции ${visibleStation.title}`}
+                                className={`absolute inset-0 h-full w-full object-contain transition-opacity ${isLightboxImageLoading ? "opacity-0" : "opacity-100"}`}
+                                onLoad={() => setIsLightboxImageLoading(false)}
+                                onError={() => setIsLightboxImageLoading(false)}
+                            />
+                        </div>
 
                         <div className="mt-2 flex items-center justify-between gap-2 text-sm text-white">
                             <span>
@@ -365,7 +397,9 @@ export function StationSidebar({
                                 <button
                                     className="absolute top-1/2 left-2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-card/95"
                                     type="button"
-                                    onClick={() => {
+                                    onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
                                         setCurrentPhotoIndex(
                                             (prev) =>
                                                 (prev -
@@ -382,7 +416,9 @@ export function StationSidebar({
                                 <button
                                     className="absolute top-1/2 right-2 flex size-11 -translate-y-1/2 items-center justify-center rounded-full bg-card/95"
                                     type="button"
-                                    onClick={() => {
+                                    onClick={(event) => {
+                                        event.preventDefault();
+                                        event.stopPropagation();
                                         setCurrentPhotoIndex(
                                             (prev) =>
                                                 (prev + 1) %
