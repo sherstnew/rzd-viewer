@@ -17,8 +17,7 @@ type StationScheduleItem = {
 };
 
 export type StationPhotoItem = {
-    previewUrl: string;
-    imageUrl: string;
+    imageDataUrl: string;
     photoPageUrl: string;
     caption: string;
 };
@@ -42,6 +41,7 @@ export function StationSidebar({
     isPhotosLoading,
     onClose,
 }: StationSidebarProps) {
+    const [isDesktop, setIsDesktop] = useState(false);
     const [currentPhotoIndex, setCurrentPhotoIndex] = useState(0);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [isCurrentImageLoading, setIsCurrentImageLoading] = useState(true);
@@ -65,6 +65,20 @@ export function StationSidebar({
     };
 
     useEffect(() => {
+        const mediaQuery = window.matchMedia("(min-width: 768px)");
+        const updateDesktopState = () => {
+            setIsDesktop(mediaQuery.matches);
+        };
+
+        updateDesktopState();
+        mediaQuery.addEventListener("change", updateDesktopState);
+
+        return () => {
+            mediaQuery.removeEventListener("change", updateDesktopState);
+        };
+    }, []);
+
+    useEffect(() => {
         const resetId = window.setTimeout(() => {
             setCurrentPhotoIndex(0);
             setIsLightboxOpen(false);
@@ -76,6 +90,12 @@ export function StationSidebar({
             window.clearTimeout(resetId);
         };
     }, [visibleStation?.title, visiblePhotos.length]);
+
+    useEffect(() => {
+        if (!isDesktop && isLightboxOpen) {
+            closeLightbox();
+        }
+    }, [isDesktop, isLightboxOpen]);
 
     const currentPhoto = useMemo(() => {
         if (visiblePhotos.length === 0) {
@@ -142,8 +162,7 @@ export function StationSidebar({
     }
 
     const canNavigatePhotos = visiblePhotos.length > 1;
-    const currentImageUrl = currentPhoto?.imageUrl ?? null;
-    const currentPreviewImageUrl = currentPhoto?.previewUrl ?? null;
+    const currentImageUrl = currentPhoto?.imageDataUrl ?? null;
 
     return (
         <>
@@ -175,24 +194,18 @@ export function StationSidebar({
                                     </div>
                                 ) : null}
                                 <button
-                                    className="block h-56 w-full cursor-zoom-in"
+                                    className={`block h-56 w-full ${isDesktop ? "cursor-zoom-in" : "cursor-default"}`}
                                     type="button"
                                     onClick={(event) => {
                                         event.preventDefault();
                                         event.stopPropagation();
+                                        if (!isDesktop) {
+                                            return;
+                                        }
                                         setIsLightboxOpen(true);
                                         setIsLightboxImageLoading(true);
                                     }}
                                 >
-                                    {isCurrentImageLoading &&
-                                    currentPreviewImageUrl ? (
-                                        <img
-                                            src={currentPreviewImageUrl}
-                                            alt={`Превью станции ${visibleStation.title}`}
-                                            className="absolute inset-0 h-56 w-full object-cover"
-                                            loading="lazy"
-                                        />
-                                    ) : null}
                                     <img
                                         src={currentImageUrl}
                                         alt={`Фото станции ${visibleStation.title}`}
@@ -355,14 +368,6 @@ export function StationSidebar({
                         </button>
 
                         <div className="relative h-[80vh] max-h-[42rem] min-h-[18rem] w-full overflow-hidden rounded-lg bg-black/20">
-                            {currentPreviewImageUrl ? (
-                                <img
-                                    src={currentPreviewImageUrl}
-                                    alt={`Превью станции ${visibleStation.title}`}
-                                    className="absolute inset-0 h-full w-full object-contain opacity-70"
-                                    loading="lazy"
-                                />
-                            ) : null}
                             {isLightboxImageLoading ? (
                                 <div className="absolute inset-0 flex items-center justify-center bg-black/10">
                                     <div className="size-10 animate-spin rounded-full border-2 border-white/35 border-t-white" />

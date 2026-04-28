@@ -1,5 +1,6 @@
+import { Buffer } from "node:buffer"
 import { NextRequest, NextResponse } from "next/server"
-import { fetchTextWithProxy } from "@/lib/proxy-http"
+import { fetchBufferWithProxy, fetchTextWithProxy } from "@/lib/proxy-http"
 
 const RAILWAYZ_BASE_URL = "https://railwayz.info"
 const RAILWAYZ_SEARCH_URLS = [
@@ -11,7 +12,12 @@ const RAILWAYZ_REQUEST_TIMEOUT_MS = 15000
 const RAILWAYZ_MAX_ATTEMPTS_PER_URL = 2
 
 type StationPhotoItem = {
-  previewUrl: string
+  imageDataUrl: string
+  photoPageUrl: string
+  caption: string
+}
+
+type ParsedStationPhotoSource = {
   imageUrl: string
   photoPageUrl: string
   caption: string
@@ -76,13 +82,43 @@ function normalizeUrl(rawUrl: string): string | null {
   }
 }
 
-function buildImageProxyUrl(sourceUrl: string): string {
-  const params = new URLSearchParams({ src: sourceUrl })
-  return `/api/stations/photos/image?${params.toString()}`
-}
-
 function toFullSizeRailwayzImageUrl(imageUrl: string): string {
   return imageUrl.replace(/_s(?=\.(?:webp|jpg|jpeg|png|gif)(?:\?|$))/i, "")
+}
+
+function resolveContentType(rawContentType: string | string[] | undefined): string {
+  const headerValue = Array.isArray(rawContentType) ? rawContentType[0] : rawContentType
+  if (!headerValue) {
+    return "application/octet-stream"
+  }
+
+  return headerValue.split(";")[0]?.trim() || "application/octet-stream"
+}
+
+async function fetchImageAsDataUrl(imageUrl: string): Promise<string | null> {
+  try {
+    const response = await fetchBufferWithProxy(imageUrl, {
+      headers: {
+        Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
+        "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
+        Referer: "https://railwayz.info/photolines/",
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
+      },
+      timeoutMs: RAILWAYZ_REQUEST_TIMEOUT_MS,
+      useProxy: false,
+    })
+
+    if (!response.ok) {
+      return null
+    }
+
+    const contentType = resolveContentType(response.headers["content-type"])
+    const base64 = Buffer.from(response.buffer).toString("base64")
+    return `data:${contentType};base64,${base64}`
+  } catch {
+    return null
+  }
 }
 
 function extractPhotosSection(html: string): string | null {
@@ -114,14 +150,14 @@ function extractImageLikeHref(figureHtml: string): string | null {
   return null
 }
 
-function parsePhotosFromHtml(html: string): StationPhotoItem[] {
+function parsePhotoSourcesFromHtml(html: string): ParsedStationPhotoSource[] {
   const section = extractPhotosSection(html)
   if (!section) {
     return []
   }
 
   const figureRegex = /<figure[^>]*class=(["'])[^"']*img_cell[^"']*\1[^>]*>([\s\S]*?)<\/figure>/gi
-  const photos: StationPhotoItem[] = []
+  const photos: ParsedStationPhotoSource[] = []
   const seenPhotoPages = new Set<string>()
 
   let figureMatch: RegExpExecArray | null
@@ -148,19 +184,37 @@ function parsePhotosFromHtml(html: string): StationPhotoItem[] {
     const fullImageHref = extractImageLikeHref(figureHtml)
     const fullImageUrl = fullImageHref ? normalizeUrl(fullImageHref) : null
     const sourceImageUrl = fullImageUrl ?? toFullSizeRailwayzImageUrl(thumbUrl)
-    const imageUrl = buildImageProxyUrl(sourceImageUrl)
-    const previewUrl = buildImageProxyUrl(thumbUrl)
 
     seenPhotoPages.add(photoPageUrl)
     photos.push({
-      previewUrl,
-      imageUrl,
+      imageUrl: sourceImageUrl,
       photoPageUrl,
       caption,
     })
   }
 
   return photos
+}
+
+async function resolvePhotoSourcesToBase64(
+  photoSources: ParsedStationPhotoSource[],
+): Promise<StationPhotoItem[]> {
+  const resolvedPhotos = await Promise.all(
+    photoSources.map(async (photoSource) => {
+      const imageDataUrl = await fetchImageAsDataUrl(photoSource.imageUrl)
+      if (!imageDataUrl) {
+        return null
+      }
+
+      return {
+        imageDataUrl,
+        photoPageUrl: photoSource.photoPageUrl,
+        caption: photoSource.caption,
+      } satisfies StationPhotoItem
+    }),
+  )
+
+  return resolvedPhotos.filter((photo): photo is StationPhotoItem => photo !== null)
 }
 
 function countFiguresInPhotosSection(html: string): number {
@@ -318,7 +372,7 @@ export async function POST(request: NextRequest) {
       }
 
       const html = fetchResult.response.text
-      const photos = parsePhotosFromHtml(html)
+      const photoSources = parsePhotoSourcesFromHtml(html)
       debugInfo.selectedQuery = query
       debugInfo.selectedUrl = fetchResult.selectedUrl
       debugInfo.finalResponseUrl = fetchResult.response.url
@@ -326,6 +380,7 @@ export async function POST(request: NextRequest) {
       debugInfo.hasPhotosSection = Boolean(extractPhotosSection(html))
       debugInfo.figureCountInSection = countFiguresInPhotosSection(html)
       debugInfo.htmlSnippet = html.slice(0, 1200)
+      const photos = await resolvePhotoSourcesToBase64(photoSources)
       if (photos.length > 0) {
         return NextResponse.json({ photos, debug: debugInfo })
       }
