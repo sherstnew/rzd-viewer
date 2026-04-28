@@ -1440,13 +1440,7 @@ export function MapExample() {
     const updatedDelaySignature = JSON.stringify([updated.departure_event, updated.arrival_event])
     const shouldSyncThreadRoute = !currentTrain.thread_route && (updated.thread_route || updated.thread_error)
     const shouldSyncDelay = currentDelaySignature !== updatedDelaySignature
-    const currentTrainWithPosition = currentTrain as Partial<TrainWithCoordinates>
-    const updatedTrainWithPosition = updated as Partial<TrainWithCoordinates>
-    const shouldSyncPosition =
-      currentTrainWithPosition.longitude !== updatedTrainWithPosition.longitude ||
-      currentTrainWithPosition.latitude !== updatedTrainWithPosition.latitude
-
-    if (shouldSyncThreadRoute || shouldSyncDelay || shouldSyncPosition) {
+    if (shouldSyncThreadRoute || shouldSyncDelay) {
       setCurrentTrain(updated)
     }
   }, [currentTrain, currentTrainKey, trains, setCurrentTrain])
