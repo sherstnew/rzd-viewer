@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
+import { fetchTextWithProxy } from "@/lib/proxy-http"
 
 const RAILWAYZ_BASE_URL = "https://railwayz.info"
 const RAILWAYZ_SEARCH_URLS = [
@@ -10,9 +11,9 @@ const RAILWAYZ_REQUEST_TIMEOUT_MS = 15000
 const RAILWAYZ_MAX_ATTEMPTS_PER_URL = 2
 
 type StationPhotoItem = {
-  thumbUrl: string
+  previewUrl: string
+  imageUrl: string
   photoPageUrl: string
-  fullImageUrl: string | null
   caption: string
 }
 
@@ -73,6 +74,15 @@ function normalizeUrl(rawUrl: string): string | null {
   } catch {
     return null
   }
+}
+
+function buildImageProxyUrl(sourceUrl: string): string {
+  const params = new URLSearchParams({ src: sourceUrl })
+  return `/api/stations/photos/image?${params.toString()}`
+}
+
+function toFullSizeRailwayzImageUrl(imageUrl: string): string {
+  return imageUrl.replace(/_s(?=\.(?:webp|jpg|jpeg|png|gif)(?:\?|$))/i, "")
 }
 
 function extractPhotosSection(html: string): string | null {
@@ -137,12 +147,15 @@ function parsePhotosFromHtml(html: string): StationPhotoItem[] {
 
     const fullImageHref = extractImageLikeHref(figureHtml)
     const fullImageUrl = fullImageHref ? normalizeUrl(fullImageHref) : null
+    const sourceImageUrl = fullImageUrl ?? toFullSizeRailwayzImageUrl(thumbUrl)
+    const imageUrl = buildImageProxyUrl(sourceImageUrl)
+    const previewUrl = buildImageProxyUrl(thumbUrl)
 
     seenPhotoPages.add(photoPageUrl)
     photos.push({
-      thumbUrl,
+      previewUrl,
+      imageUrl,
       photoPageUrl,
-      fullImageUrl,
       caption,
     })
   }
@@ -202,7 +215,7 @@ function shouldRetryFetchError(error: unknown): boolean {
 }
 
 async function fetchRailwayzSearch(searchBody: string): Promise<{
-  response: Response | null
+  response: Awaited<ReturnType<typeof fetchTextWithProxy>> | null
   attempts: RailwayzAttemptDebug[]
   selectedUrl: string | null
 }> {
@@ -212,7 +225,7 @@ async function fetchRailwayzSearch(searchBody: string): Promise<{
   for (const url of RAILWAYZ_SEARCH_URLS) {
     for (let attempt = 1; attempt <= RAILWAYZ_MAX_ATTEMPTS_PER_URL; attempt += 1) {
       try {
-        const response = await fetch(url, {
+        const response = await fetchTextWithProxy(url, {
           method: "POST",
           headers: {
             Accept:
@@ -227,9 +240,8 @@ async function fetchRailwayzSearch(searchBody: string): Promise<{
               "Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36",
           },
           body: searchBody,
-          cache: "no-store",
-          signal: AbortSignal.timeout(RAILWAYZ_REQUEST_TIMEOUT_MS),
-          redirect: "follow",
+          timeoutMs: RAILWAYZ_REQUEST_TIMEOUT_MS,
+          useProxy: false,
         })
 
         attempts.push({
@@ -305,7 +317,7 @@ export async function POST(request: NextRequest) {
         continue
       }
 
-      const html = await fetchResult.response.text()
+      const html = fetchResult.response.text
       const photos = parsePhotosFromHtml(html)
       debugInfo.selectedQuery = query
       debugInfo.selectedUrl = fetchResult.selectedUrl

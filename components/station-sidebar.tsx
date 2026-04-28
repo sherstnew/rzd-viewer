@@ -17,9 +17,9 @@ type StationScheduleItem = {
 };
 
 export type StationPhotoItem = {
-    thumbUrl: string;
+    previewUrl: string;
+    imageUrl: string;
     photoPageUrl: string;
-    fullImageUrl: string | null;
     caption: string;
 };
 
@@ -34,11 +34,6 @@ type StationSidebarProps = {
     isPhotosLoading: boolean;
     onClose: () => void;
 };
-
-function toDisplayImageUrl(photo: StationPhotoItem): string {
-    const source = photo.fullImageUrl ?? photo.thumbUrl;
-    return source.replace(/_s(?=\.(?:webp|jpg|jpeg|png|gif)(?:\?|$))/i, "");
-}
 
 export function StationSidebar({
     station,
@@ -123,10 +118,8 @@ export function StationSidebar({
     }
 
     const canNavigatePhotos = visiblePhotos.length > 1;
-    const currentImageUrl = currentPhoto
-        ? toDisplayImageUrl(currentPhoto)
-        : null;
-    const currentPreviewImageUrl = currentPhoto?.thumbUrl ?? null;
+    const currentImageUrl = currentPhoto?.imageUrl ?? null;
+    const currentPreviewImageUrl = currentPhoto?.previewUrl ?? null;
 
     return (
         <>

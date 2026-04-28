@@ -13,6 +13,7 @@ type ProxyRequestOptions = {
   body?: string
   timeoutMs?: number
   maxRedirects?: number
+  useProxy?: boolean
 }
 
 type ResolvedProxyRequestOptions = {
@@ -21,6 +22,7 @@ type ResolvedProxyRequestOptions = {
   body?: string
   timeoutMs: number
   maxRedirects: number
+  useProxy: boolean
 }
 
 type ProxyTextResponse = {
@@ -28,6 +30,15 @@ type ProxyTextResponse = {
   status: number
   headers: IncomingHttpHeaders
   text: string
+  url: string
+  redirected: boolean
+}
+
+type ProxyBufferResponse = {
+  ok: boolean
+  status: number
+  headers: IncomingHttpHeaders
+  buffer: Buffer
   url: string
   redirected: boolean
 }
@@ -109,11 +120,11 @@ async function executeRequest(
   url: URL,
   options: ResolvedProxyRequestOptions,
   redirectCount: number,
-): Promise<ProxyTextResponse> {
+): Promise<ProxyBufferResponse> {
   const transport = url.protocol === "https:" ? https : http
-  const proxyAgent = getProxyAgent()
+  const proxyAgent = options.useProxy ? getProxyAgent() : null
 
-  return new Promise<ProxyTextResponse>((resolve, reject) => {
+  return new Promise<ProxyBufferResponse>((resolve, reject) => {
     const request = transport.request(
       {
         protocol: url.protocol,
@@ -132,7 +143,7 @@ async function executeRequest(
         })
 
         response.on("end", async () => {
-          const text = Buffer.concat(chunks).toString("utf8")
+          const buffer = Buffer.concat(chunks)
           const status = response.statusCode ?? 0
           const location = response.headers.location
 
@@ -179,7 +190,7 @@ async function executeRequest(
             ok: status >= 200 && status < 300,
             status,
             headers: response.headers,
-            text,
+            buffer,
             url: url.toString(),
             redirected: redirectCount > 0,
           })
@@ -207,6 +218,31 @@ export async function fetchTextWithProxy(
 ): Promise<ProxyTextResponse> {
   const url = input instanceof URL ? input : new URL(input)
 
+  const response = await executeRequest(
+    url,
+    {
+      method: options.method ?? "GET",
+      headers: options.headers ?? {},
+      body: options.body,
+      timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
+      maxRedirects: options.maxRedirects ?? DEFAULT_MAX_REDIRECTS,
+      useProxy: options.useProxy ?? true,
+    },
+    0,
+  )
+
+  return {
+    ...response,
+    text: response.buffer.toString("utf8"),
+  }
+}
+
+export async function fetchBufferWithProxy(
+  input: string | URL,
+  options: ProxyRequestOptions = {},
+): Promise<ProxyBufferResponse> {
+  const url = input instanceof URL ? input : new URL(input)
+
   return executeRequest(
     url,
     {
@@ -215,6 +251,7 @@ export async function fetchTextWithProxy(
       body: options.body,
       timeoutMs: options.timeoutMs ?? DEFAULT_TIMEOUT_MS,
       maxRedirects: options.maxRedirects ?? DEFAULT_MAX_REDIRECTS,
+      useProxy: options.useProxy ?? true,
     },
     0,
   )
