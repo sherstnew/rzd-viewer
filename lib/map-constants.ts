@@ -11,7 +11,7 @@ export type RouteDefinition = {
 export const MOSCOW_CENTER: [number, number] = [55.7558, 37.6173]
 
 export const LONG_DISTANCE_TRAINS_CACHE_TTL_MS = 60_000
-export const LONG_DISTANCE_TRAINS_DEBOUNCE_MS = 350
+export const LONG_DISTANCE_TRAINS_DEBOUNCE_MS = 500
 export const LONG_DISTANCE_VIEWPORT_PRECISION = 3
 export const CLOCK_TICK_MS = 1_000
 export const TRAIN_HEADING_BUCKET_DEG = 10
@@ -27,7 +27,7 @@ export const ROUTE_STATION_DISTANCE_THRESHOLD = 0.00025
 
 export const YANDEX_LIVE_OBJECTS_URL = "https://rasp.yandex.ru/maps/train/objects"
 export const OPENRAILWAYMAP_ATTRIBUTION =
-  '<a href="https://www.openstreetmap.org/copyright">� OpenStreetMap contributors</a>, Style: <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA 2.0</a> <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> and OpenStreetMap'
+  '<a href="https://www.openstreetmap.org/copyright">&copy; OpenStreetMap contributors</a>, Style: <a href="https://creativecommons.org/licenses/by-sa/2.0/">CC-BY-SA 2.0</a> <a href="https://www.openrailwaymap.org/">OpenRailwayMap</a> and OpenStreetMap'
 
 export const MCD1_ROUTE_COLOR = "#F6A500"
 export const MCD2_ROUTE_COLOR = "#d55384"
@@ -44,55 +44,55 @@ const PUSHKINO_STATION_CODE = "s9600701"
 const BOLSHEVO_STATION_CODE = "s9602217"
 const LYUBLINO_STATION_CODE = "s9601788"
 
-export const VIDEO_SECTION_START_TITLE = "������� ���������"
-export const VIDEO_SECTION_END_TITLE = "��������"
+export const VIDEO_SECTION_START_TITLE = "Красный Строитель"
+export const VIDEO_SECTION_END_TITLE = "Подольск"
 
 export const ROUTE_DEFINITIONS: RouteDefinition[] = [
   {
     id: "mcd1",
-    label: "���-1",
+    label: "МЦД-1",
     color: MCD1_ROUTE_COLOR,
     start: [37.28264496693386, 55.672407632018555],
     end: [37.484721474868444, 56.01327444797851],
   },
   {
     id: "mcd2",
-    label: "���-2",
+    label: "МЦД-2",
     color: MCD2_ROUTE_COLOR,
     start: [37.18482251289728, 55.841658030144124],
     end: [37.56539830422924, 55.43156562773968],
   },
   {
     id: "mcd3",
-    label: "���-3",
+    label: "МЦД-3",
     color: MCD3_ROUTE_COLOR,
     start: [37.173888, 55.980039],
     end: [38.23932639021258, 55.560367089788535],
   },
   {
     id: "mcd4",
-    label: "���-4",
+    label: "МЦД-4",
     color: MCD4_ROUTE_COLOR,
     start: [37.066874, 55.550152],
     end: [38.00832, 55.752306],
   },
   {
     id: "mcd5_south",
-    label: "���-5",
+    label: "МЦД-5",
     color: MCD5_ROUTE_COLOR,
     start: [37.640771, 55.729498],
     end: [37.773381, 55.4399],
   },
   {
     id: "mcd5_north",
-    label: "���-5",
+    label: "МЦД-5",
     color: MCD5_ROUTE_COLOR,
     start: [37.657484, 55.777685],
     end: [37.839165, 56.012485],
   },
   {
     id: "mcd5_korolev",
-    label: "���-5",
+    label: "МЦД-5",
     color: MCD5_ROUTE_COLOR,
     start: [37.761228, 55.914823],
     end: [37.861022, 55.926201],

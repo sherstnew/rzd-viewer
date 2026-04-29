@@ -515,14 +515,36 @@ export function longDistanceTrainKey(train: Pick<LongDistanceTrainObject, "id" |
 
 const RZD_ROUTE_NUMBER_SUFFIXES: Record<string, string> = {
   SHHJ: "SZ",
-  YE: "EI",
+  SHH: "SZ",
+  SHCH: "SZ",
+  EJ: "EI",
+  YE: "EJ",
+  EI: "EJ",
+  E: "EJ",
   YA: "JA",
+  JA: "JA",
   QI: "YJ",
+  YJ: "YJ",
+  QTJ: "MZ",
+  QT: "MZ",
+  MZ: "MZ",
+  XJ: "KH",
+  X: "KH",
+  KH: "KH",
   JI: "ZH",
   Ж: "ZH",
+  ZH: "ZH",
+  CH: "CH",
+  Ч: "CH",
+  SH: "SH",
+  Ш: "SH",
+  Щ: "SZ",
   A: "AJ",
+  А: "AJ",
   S: "SJ",
+  С: "SJ",
   U: "UJ",
+  У: "UJ",
 }
 const RZD_ROUTE_NUMBER_SINGLE_CONSONANTS = new Set([
   "B",
@@ -552,13 +574,13 @@ export function normalizeLongDistanceRouteRequestNumber(number: string): string 
   )
 
   for (const [sourceSuffix, rzdSuffix] of suffixes) {
-    if (trimmed.endsWith(rzdSuffix)) {
-      return trimmed
-    }
-
     if (trimmed.endsWith(sourceSuffix)) {
       return `${trimmed.slice(0, -sourceSuffix.length)}${rzdSuffix}`
     }
+  }
+
+  if (suffixes.some(([, rzdSuffix]) => trimmed.endsWith(rzdSuffix))) {
+    return trimmed
   }
 
   if (RZD_ROUTE_NUMBER_STABLE_DIGRAPHS.some((suffix) => trimmed.endsWith(suffix))) {
@@ -582,4 +604,23 @@ export function normalizeLongDistanceRouteRequestNumber(number: string): string 
   return trimmed
 }
 
+function addRouteNumberCandidate(candidates: string[], candidate: string): void {
+  if (candidate && !candidates.includes(candidate)) {
+    candidates.push(candidate)
+  }
+}
 
+export function longDistanceRouteRequestNumberCandidates(number: string): string[] {
+  const original = number.trim().toUpperCase()
+  const normalized = normalizeLongDistanceRouteRequestNumber(original)
+  const candidates: string[] = []
+
+  addRouteNumberCandidate(candidates, normalized)
+  addRouteNumberCandidate(candidates, original)
+
+  if (normalized && !normalized.endsWith("J")) {
+    addRouteNumberCandidate(candidates, `${normalized}J`)
+  }
+
+  return candidates
+}

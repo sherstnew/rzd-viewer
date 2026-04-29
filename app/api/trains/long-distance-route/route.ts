@@ -3,8 +3,8 @@ import { readFile } from "node:fs/promises"
 import path from "node:path"
 import {
   createRussiaGeoFilter,
+  longDistanceRouteRequestNumberCandidates,
   normalizeLongDistanceRoutePayload,
-  normalizeLongDistanceRouteRequestNumber,
   type LongDistanceRoute,
   type RussiaGeoFilter,
   type RussiaRegionsGeoJson,
@@ -13,7 +13,7 @@ import { fetchJsonWithProxy } from "@/lib/proxy-http"
 
 const RZD_ROUTE_BASE_URL = "https://www.rzd.ru/routemap/source/current/train"
 const ROUTE_CACHE_TTL_MS = 60_000
-const TRAIN_NUMBER_REGEX = /^[0-9A-Za-zА-Яа-я]+$/
+const TRAIN_NUMBER_REGEX = /^[0-9\p{L}]+$/u
 const DATE_REGEX = /^\d{4}-\d{2}-\d{2}$/
 
 type CachedRoute = {
@@ -41,15 +41,6 @@ async function getRussiaGeoFilter(): Promise<RussiaGeoFilter> {
   return cachedRussiaGeoFilter
 }
 
-function routeNumberCandidates(number: string): string[] {
-  const candidates = [number]
-  if (!number.endsWith("J")) {
-    candidates.push(`${number}J`)
-  }
-
-  return Array.from(new Set(candidates))
-}
-
 function hasUsableRouteData(route: LongDistanceRoute): boolean {
   return route.stations.length > 0
 }
@@ -75,24 +66,24 @@ async function fetchRzdRoute(number: string, date: string) {
 export async function GET(request: Request) {
   const requestUrl = new URL(request.url)
   const rawNumber = requestUrl.searchParams.get("number")?.trim() ?? ""
-  const number = normalizeLongDistanceRouteRequestNumber(rawNumber)
+  const candidates = longDistanceRouteRequestNumberCandidates(rawNumber)
   const date = requestUrl.searchParams.get("date")?.trim() ?? ""
 
-  if (!number || !date) {
+  if (candidates.length === 0 || !date) {
     return NextResponse.json(
       { error: "number and date query parameters are required" },
       { status: 400 },
     )
   }
 
-  if (!TRAIN_NUMBER_REGEX.test(number) || !DATE_REGEX.test(date)) {
+  if (!candidates.every((candidate) => TRAIN_NUMBER_REGEX.test(candidate)) || !DATE_REGEX.test(date)) {
     return NextResponse.json(
       { error: "Invalid number or date query parameter" },
       { status: 400 },
     )
   }
 
-  const cacheKey = `${number}|${date}`
+  const cacheKey = `${candidates.join(",")}|${date}`
   const cached = routeCache.get(cacheKey)
   if (cached && Date.now() - cached.fetchedAt <= ROUTE_CACHE_TTL_MS) {
     return NextResponse.json(cached.payload)
@@ -102,7 +93,7 @@ export async function GET(request: Request) {
     const errors: string[] = []
     const isPointInRussia = await getRussiaGeoFilter()
 
-    for (const candidate of routeNumberCandidates(number)) {
+    for (const candidate of candidates) {
       try {
         const rawPayload = await fetchRzdRoute(candidate, date)
         const payload = normalizeLongDistanceRoutePayload(rawPayload, candidate, date, isPointInRussia)
