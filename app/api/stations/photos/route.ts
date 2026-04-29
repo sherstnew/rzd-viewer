@@ -10,6 +10,11 @@ const RAILWAYZ_SEARCH_URLS = [
 const MAX_PHOTOS = 30
 const RAILWAYZ_REQUEST_TIMEOUT_MS = 15000
 const RAILWAYZ_MAX_ATTEMPTS_PER_URL = 2
+const STATION_PHOTOS_CACHE_TTL_MS = 6 * 60 * 60 * 1000
+const STATION_PHOTOS_CACHE_MAX_ENTRIES = 64
+const STATION_PHOTOS_RESPONSE_HEADERS = {
+  "Cache-Control": "public, max-age=300, s-maxage=21600, stale-while-revalidate=86400",
+}
 
 type StationPhotoItem = {
   imageDataUrl: string
@@ -42,6 +47,75 @@ type RailwayzDebugInfo = {
   hasPhotosSection: boolean
   figureCountInSection: number
   htmlSnippet: string
+}
+
+type StationPhotosResponse = {
+  photos: StationPhotoItem[]
+  debug: RailwayzDebugInfo
+}
+
+type StationPhotosCacheEntry = StationPhotosResponse & {
+  expiresAt: number
+}
+
+const stationPhotosCache = new Map<string, StationPhotosCacheEntry>()
+
+function getStationPhotosCacheKey(esrCode: string, stationTitle: string): string | null {
+  if (esrCode) {
+    return `esr:${esrCode.toLowerCase()}`
+  }
+
+  if (stationTitle) {
+    return `title:${stationTitle.toLowerCase()}`
+  }
+
+  return null
+}
+
+function readStationPhotosCache(cacheKey: string | null): StationPhotosResponse | null {
+  if (!cacheKey) {
+    return null
+  }
+
+  const entry = stationPhotosCache.get(cacheKey)
+  if (!entry) {
+    return null
+  }
+
+  if (entry.expiresAt <= Date.now()) {
+    stationPhotosCache.delete(cacheKey)
+    return null
+  }
+
+  stationPhotosCache.delete(cacheKey)
+  stationPhotosCache.set(cacheKey, entry)
+  return {
+    photos: entry.photos,
+    debug: entry.debug,
+  }
+}
+
+function writeStationPhotosCache(cacheKey: string | null, response: StationPhotosResponse): void {
+  if (!cacheKey) {
+    return
+  }
+
+  stationPhotosCache.set(cacheKey, {
+    ...response,
+    expiresAt: Date.now() + STATION_PHOTOS_CACHE_TTL_MS,
+  })
+
+  while (stationPhotosCache.size > STATION_PHOTOS_CACHE_MAX_ENTRIES) {
+    const oldestKey = stationPhotosCache.keys().next().value
+    if (!oldestKey) {
+      break
+    }
+    stationPhotosCache.delete(oldestKey)
+  }
+}
+
+function stationPhotosJson(response: StationPhotosResponse) {
+  return NextResponse.json(response, { headers: STATION_PHOTOS_RESPONSE_HEADERS })
 }
 
 function decodeHtmlEntities(value: string): string {
@@ -347,6 +421,12 @@ export async function POST(request: NextRequest) {
     const stationTitle =
       typeof body?.stationTitle === "string" ? body.stationTitle.trim() : ""
     const searchQueries = Array.from(new Set([esrCode, stationTitle].filter(Boolean)))
+    const cacheKey = getStationPhotosCacheKey(esrCode, stationTitle)
+    const cachedResponse = readStationPhotosCache(cacheKey)
+    if (cachedResponse) {
+      return stationPhotosJson(cachedResponse)
+    }
+
     const debugInfo: RailwayzDebugInfo = {
       searchQueries,
       attempts: [],
@@ -360,7 +440,7 @@ export async function POST(request: NextRequest) {
     }
 
     if (searchQueries.length === 0) {
-      return NextResponse.json({ photos: [] as StationPhotoItem[], debug: debugInfo })
+      return stationPhotosJson({ photos: [] as StationPhotoItem[], debug: debugInfo })
     }
 
     for (const [queryIndex, query] of searchQueries.entries()) {
@@ -382,7 +462,9 @@ export async function POST(request: NextRequest) {
       debugInfo.htmlSnippet = html.slice(0, 1200)
       const photos = await resolvePhotoSourcesToBase64(photoSources)
       if (photos.length > 0) {
-        return NextResponse.json({ photos, debug: debugInfo })
+        const response = { photos, debug: debugInfo }
+        writeStationPhotosCache(cacheKey, response)
+        return stationPhotosJson(response)
       }
 
       // If we got HTML but no photos for this query, keep trying next query.
@@ -391,10 +473,12 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({ photos: [] as StationPhotoItem[], debug: debugInfo })
+    const response = { photos: [] as StationPhotoItem[], debug: debugInfo }
+    writeStationPhotosCache(cacheKey, response)
+    return stationPhotosJson(response)
   } catch (err) {
     console.warn(`Station photos parser failed. ${describeFetchError(err)}`)
-    return NextResponse.json({
+    return stationPhotosJson({
       photos: [] as StationPhotoItem[],
       debug: {
         searchQueries: [],

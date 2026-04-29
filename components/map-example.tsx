@@ -182,6 +182,14 @@ type StationPhotosDebug = {
   htmlSnippet?: string
 }
 
+type StationPhotosCacheEntry = {
+  photos: StationPhotoItem[]
+}
+
+function stationPhotosCacheKey(station: Pick<RouteStation, "esrCode" | "title">): string {
+  return station.esrCode ? `esr:${station.esrCode}` : `title:${station.title.trim().toLowerCase()}`
+}
+
 function trainInstanceKey(train: Pick<Train, "thread" | "departure" | "arrival">): string {
   return `${train.thread.uid}__${train.departure}__${train.arrival}`
 }
@@ -1011,6 +1019,7 @@ export function MapExample() {
   const [longDistanceRouteError, setLongDistanceRouteError] = useState<string | null>(null)
   const [isLongDistanceRouteLoading, setIsLongDistanceRouteLoading] = useState(false)
   const stationClickLockUntilRef = useRef(0)
+  const stationPhotosCacheRef = useRef(new Map<string, StationPhotosCacheEntry>())
 
   const {
     currentTrain,
@@ -1046,12 +1055,13 @@ export function MapExample() {
   }, [])
   const openStationSidebar = useCallback(
     (station: RouteStation) => {
+      const cachedPhotos = stationPhotosCacheRef.current.get(stationPhotosCacheKey(station))
       stationClickLockUntilRef.current = Date.now() + 350
       setCurrentTrain(null)
       setCurrentStationTitle(station.title)
       setCurrentStation(station)
-      setStationPhotos([])
-      setIsPhotosLoading(true)
+      setStationPhotos(cachedPhotos?.photos ?? [])
+      setIsPhotosLoading(!cachedPhotos)
     },
     [setCurrentTrain, setCurrentStationTitle],
   )
@@ -1382,6 +1392,14 @@ export function MapExample() {
       return
     }
 
+    const cacheKey = stationPhotosCacheKey(currentStation)
+    const cachedPhotos = stationPhotosCacheRef.current.get(cacheKey)
+    if (cachedPhotos) {
+      setStationPhotos(cachedPhotos.photos)
+      setIsPhotosLoading(false)
+      return
+    }
+
     const controller = new AbortController()
 
     void fetch("/api/stations/photos", {
@@ -1394,7 +1412,6 @@ export function MapExample() {
         stationTitle: currentStation.title,
       }),
       signal: controller.signal,
-      cache: "no-store",
     })
       .then(async (response) => {
         if (!response.ok) {
@@ -1415,6 +1432,7 @@ export function MapExample() {
         }
       })
       .then((result) => {
+        stationPhotosCacheRef.current.set(cacheKey, { photos: result.photos })
         setStationPhotos(result.photos)
         const stationTitle = currentStation.title
         // Railwayz debug trace for local troubleshooting when photos do not appear.
