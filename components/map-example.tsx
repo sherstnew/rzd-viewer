@@ -526,19 +526,30 @@ function RouteBounds({ routes }: { routes: RouteGeoJson[] }) {
   return null
 }
 
-function MapZoomWatcher({ onZoomChange }: { onZoomChange: (zoom: number) => void }) {
+function MapZoomWatcher({
+  onZoomChange,
+  onZoomingChange,
+}: {
+  onZoomChange: (zoom: number) => void
+  onZoomingChange: (isZooming: boolean) => void
+}) {
   const map = useMapEvents({
+    zoomstart() {
+      onZoomingChange(true)
+    },
     zoom(event) {
       onZoomChange(event.target.getZoom())
     },
     zoomend(event) {
       onZoomChange(event.target.getZoom())
+      onZoomingChange(false)
     },
   })
 
   useEffect(() => {
     onZoomChange(map.getZoom())
-  }, [map, onZoomChange])
+    onZoomingChange(false)
+  }, [map, onZoomChange, onZoomingChange])
 
   return null
 }
@@ -988,6 +999,7 @@ function ZoomToLongDistanceRoute({
 
 export function MapExample() {
   const [currentZoom, setCurrentZoom] = useState(10)
+  const [isMapZooming, setIsMapZooming] = useState(false)
   const [clockTimestamp, setClockTimestamp] = useState(() => getNow("real").getTime())
   const [suburbanViewportBounds, setSuburbanViewportBounds] = useState<SuburbanViewportBounds | null>(null)
   const [currentStation, setCurrentStation] = useState<RouteStation | null>(null)
@@ -1032,6 +1044,17 @@ export function MapExample() {
     setStationPhotos([])
     setIsPhotosLoading(false)
   }, [])
+  const openStationSidebar = useCallback(
+    (station: RouteStation) => {
+      stationClickLockUntilRef.current = Date.now() + 350
+      setCurrentTrain(null)
+      setCurrentStationTitle(station.title)
+      setCurrentStation(station)
+      setStationPhotos([])
+      setIsPhotosLoading(true)
+    },
+    [setCurrentTrain, setCurrentStationTitle],
+  )
   const closeLongDistanceSidebar = useCallback(() => {
     setSelectedLongDistanceTrain(null)
     setSelectedLongDistanceRoute(null)
@@ -1584,7 +1607,10 @@ export function MapExample() {
           onCloseStationSidebar={closeStationSidebar}
           shouldIgnoreMapClick={shouldIgnoreMapClick}
         />
-        <MapZoomWatcher onZoomChange={setCurrentZoom} />
+        <MapZoomWatcher
+          onZoomChange={setCurrentZoom}
+          onZoomingChange={setIsMapZooming}
+        />
         <SuburbanViewportWatcher
           enabled={!showLongDistanceTrains}
           onBoundsChange={setSuburbanViewportBounds}
@@ -1775,7 +1801,7 @@ export function MapExample() {
           </>
         ) : null}
 
-        {!showLongDistanceTrains && renderedRouteStations.map(({ station, center }) => (
+        {!showLongDistanceTrains && !isMapZooming && renderedRouteStations.map(({ station, center }) => (
           <CircleMarker
             key={`${station.routeId}-${station.code}`}
             center={center}
@@ -1788,19 +1814,17 @@ export function MapExample() {
             }}
             bubblingMouseEvents={false}
             eventHandlers={{
-              click: () => {
-                stationClickLockUntilRef.current = Date.now() + 350
-                setCurrentTrain(null)
-                setCurrentStationTitle(station.title)
-                setCurrentStation(station)
-                setStationPhotos([])
-                setIsPhotosLoading(true)
-              },
+              click: () => openStationSidebar(station),
             }}
           >
             <Tooltip
               key={`${station.routeId}-${station.code}-${showPermanentStationLabels ? "permanent" : "hover"}`}
+              className="cursor-pointer"
               direction="top"
+              eventHandlers={{
+                click: () => openStationSidebar(station),
+              }}
+              interactive
               offset={[0, -6]}
               opacity={1}
               permanent={showPermanentStationLabels}
