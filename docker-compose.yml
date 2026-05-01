@@ -8,5 +8,5 @@ services:
     ports:
       - "3000:3000"
     volumes:
-      - "D:/stations:/app/public/assets/station-photos:ro"
+      - "./public/assets/station-photos:/app/public/assets/station-photos:ro"
     restart: unless-stopped
