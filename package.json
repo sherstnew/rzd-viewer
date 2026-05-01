@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "eslint",
     "format": "prettier --write \"**/*.{ts,tsx}\"",
+    "sync:station-photos": "node scripts/sync-station-photos.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

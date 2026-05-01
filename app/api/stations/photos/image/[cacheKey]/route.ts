@@ -1,5 +1,5 @@
 import { NextRequest } from "next/server"
-import { handleStationPhotoImageRequest } from "./_handler"
+import { handleStationPhotoImageRequest } from "../_handler"
 
 export const dynamic = "force-dynamic"
 

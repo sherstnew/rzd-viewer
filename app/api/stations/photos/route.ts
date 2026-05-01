@@ -1,16 +1,15 @@
-import { NextRequest, NextResponse } from "next/server"
-import { fetchTextWithProxy } from "@/lib/proxy-http"
+import { readFile } from "node:fs/promises"
+import path from "node:path"
 
-const RAILWAYZ_BASE_URL = "https://railwayz.info"
-const RAILWAYZ_SEARCH_URLS = [
-  `${RAILWAYZ_BASE_URL}/photolines/search/`,
-  "http://railwayz.info/photolines/search/",
-]
-const MAX_PHOTOS = 30
-const RAILWAYZ_REQUEST_TIMEOUT_MS = 15000
-const RAILWAYZ_MAX_ATTEMPTS_PER_URL = 2
-const STATION_PHOTOS_CACHE_TTL_MS = 6 * 60 * 60 * 1000
-const STATION_PHOTOS_CACHE_MAX_ENTRIES = 64
+import { NextRequest, NextResponse } from "next/server"
+
+const STATION_PHOTOS_MANIFEST_PATH = path.join(
+  process.cwd(),
+  "public",
+  "assets",
+  "station-photos",
+  "manifest.json",
+)
 const STATION_PHOTOS_RESPONSE_HEADERS = {
   "Cache-Control": "private, no-store",
 }
@@ -21,43 +20,24 @@ type StationPhotoItem = {
   caption: string
 }
 
-type ParsedStationPhotoSource = {
-  imageUrl: string
-  photoPageUrl: string
-  caption: string
+type StationPhotosManifest = {
+  generatedAt?: string
+  limit?: number
+  stations?: Record<string, StationPhotoItem[]>
 }
 
-type RailwayzAttemptDebug = {
-  url: string
-  attempt: number
-  status: number | null
-  error: string | null
-  redirected: boolean | null
-  finalUrl: string | null
-}
-
-type RailwayzDebugInfo = {
-  searchQueries: string[]
-  attempts: RailwayzAttemptDebug[]
-  selectedQuery: string | null
-  selectedUrl: string | null
-  finalResponseUrl: string | null
-  htmlLength: number
-  hasPhotosSection: boolean
-  figureCountInSection: number
-  htmlSnippet: string
+type StationPhotosDebugInfo = {
+  source: "local-manifest"
+  manifestFound: boolean
+  cacheKey: string | null
+  generatedAt: string | null
+  limit: number | null
 }
 
 type StationPhotosResponse = {
   photos: StationPhotoItem[]
-  debug: RailwayzDebugInfo
+  debug: StationPhotosDebugInfo
 }
-
-type StationPhotosCacheEntry = StationPhotosResponse & {
-  expiresAt: number
-}
-
-const stationPhotosCache = new Map<string, StationPhotosCacheEntry>()
 
 function getStationPhotosCacheKey(esrCode: string, stationTitle: string): string | null {
   if (esrCode) {
@@ -71,369 +51,36 @@ function getStationPhotosCacheKey(esrCode: string, stationTitle: string): string
   return null
 }
 
-function readStationPhotosCache(cacheKey: string | null): StationPhotosResponse | null {
-  if (!cacheKey) {
-    return null
-  }
-
-  const entry = stationPhotosCache.get(cacheKey)
-  if (!entry) {
-    return null
-  }
-
-  if (entry.expiresAt <= Date.now()) {
-    stationPhotosCache.delete(cacheKey)
-    return null
-  }
-
-  stationPhotosCache.delete(cacheKey)
-  stationPhotosCache.set(cacheKey, entry)
-  return {
-    photos: entry.photos,
-    debug: entry.debug,
-  }
-}
-
-function writeStationPhotosCache(cacheKey: string | null, response: StationPhotosResponse): void {
-  if (!cacheKey) {
-    return
-  }
-
-  stationPhotosCache.set(cacheKey, {
-    ...response,
-    expiresAt: Date.now() + STATION_PHOTOS_CACHE_TTL_MS,
-  })
-
-  while (stationPhotosCache.size > STATION_PHOTOS_CACHE_MAX_ENTRIES) {
-    const oldestKey = stationPhotosCache.keys().next().value
-    if (!oldestKey) {
-      break
-    }
-    stationPhotosCache.delete(oldestKey)
-  }
-}
-
 function stationPhotosJson(response: StationPhotosResponse) {
   return NextResponse.json(response, { headers: STATION_PHOTOS_RESPONSE_HEADERS })
 }
 
-function decodeHtmlEntities(value: string): string {
-  const namedEntities: Record<string, string> = {
-    "&nbsp;": " ",
-    "&amp;": "&",
-    "&quot;": '"',
-    "&#39;": "'",
-    "&lt;": "<",
-    "&gt;": ">",
-  }
-
-  const withNamedEntities = value.replace(
-    /&nbsp;|&amp;|&quot;|&#39;|&lt;|&gt;/g,
-    (entity) => namedEntities[entity] ?? entity,
-  )
-
-  return withNamedEntities
-    .replace(/&#(\d+);/g, (_, code) => {
-      const parsed = Number(code)
-      return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : ""
-    })
-    .replace(/&#x([a-fA-F0-9]+);/g, (_, hex) => {
-      const parsed = Number.parseInt(hex, 16)
-      return Number.isFinite(parsed) ? String.fromCodePoint(parsed) : ""
-    })
-}
-
-function stripTags(value: string): string {
-  return decodeHtmlEntities(value.replace(/<[^>]+>/g, " ")).replace(/\s+/g, " ").trim()
-}
-
-function normalizeUrl(rawUrl: string): string | null {
+async function readStationPhotosManifest(): Promise<StationPhotosManifest | null> {
   try {
-    return new URL(rawUrl, RAILWAYZ_BASE_URL).toString()
+    const text = await readFile(STATION_PHOTOS_MANIFEST_PATH, "utf8")
+    return JSON.parse(text) as StationPhotosManifest
   } catch {
     return null
   }
 }
 
-function toFullSizeRailwayzImageUrl(imageUrl: string): string {
-  return imageUrl.replace(/_s(?=\.(?:webp|jpg|jpeg|png|gif)(?:\?|$))/i, "")
-}
-
-function extractPhotosSection(html: string): string | null {
-  const sectionStartMatch = /<section[^>]*id=(["'])photos\1[^>]*>/i.exec(html)
-  if (!sectionStartMatch || sectionStartMatch.index < 0) {
-    return null
-  }
-
-  const start = sectionStartMatch.index
-  const end = html.indexOf("</section>", start)
-  if (end < 0) {
-    return null
-  }
-
-  return html.slice(start, end + "</section>".length)
-}
-
-function extractImageLikeHref(figureHtml: string): string | null {
-  const hrefRegex = /<a[^>]*href=(["'])([^"']+)\1[^>]*>/gi
-  let match: RegExpExecArray | null
-
-  while ((match = hrefRegex.exec(figureHtml)) !== null) {
-    const href = match[2]
-    if (/\.(jpg|jpeg|png|webp|gif)(\?.*)?$/i.test(href)) {
-      return href
-    }
-  }
-
-  return null
-}
-
-function parsePhotoSourcesFromHtml(html: string): ParsedStationPhotoSource[] {
-  const section = extractPhotosSection(html)
-  if (!section) {
-    return []
-  }
-
-  const figureRegex = /<figure[^>]*class=(["'])[^"']*img_cell[^"']*\1[^>]*>([\s\S]*?)<\/figure>/gi
-  const photos: ParsedStationPhotoSource[] = []
-  const seenPhotoPages = new Set<string>()
-
-  let figureMatch: RegExpExecArray | null
-  while ((figureMatch = figureRegex.exec(section)) !== null && photos.length < MAX_PHOTOS) {
-    const figureHtml = figureMatch[2]
-
-    const pageHrefMatch = /<a[^>]*href=(["'])([^"']+)\1[^>]*>/i.exec(figureHtml)
-    const imgMatch = /<img[^>]*src=(["'])([^"']+)\1[^>]*>/i.exec(figureHtml)
-    if (!pageHrefMatch || !imgMatch) {
-      continue
-    }
-
-    const photoPageUrl = normalizeUrl(pageHrefMatch[2])
-    const thumbUrl = normalizeUrl(imgMatch[2])
-    if (!photoPageUrl || !thumbUrl || seenPhotoPages.has(photoPageUrl)) {
-      continue
-    }
-
-    const imgAltMatch = /<img[^>]*alt=(["'])([^"']*)\1[^>]*>/i.exec(figureHtml)
-    const figCaptionMatch = /<figcaption[^>]*>([\s\S]*?)<\/figcaption>/i.exec(figureHtml)
-    const captionSource = figCaptionMatch?.[1] ?? imgAltMatch?.[2] ?? ""
-    const caption = stripTags(captionSource)
-
-    const fullImageHref = extractImageLikeHref(figureHtml)
-    const fullImageUrl = fullImageHref ? normalizeUrl(fullImageHref) : null
-    const sourceImageUrl = fullImageUrl ?? toFullSizeRailwayzImageUrl(thumbUrl)
-
-    seenPhotoPages.add(photoPageUrl)
-    photos.push({
-      imageUrl: sourceImageUrl,
-      photoPageUrl,
-      caption,
-    })
-  }
-
-  return photos
-}
-
-function countFiguresInPhotosSection(html: string): number {
-  const section = extractPhotosSection(html)
-  if (!section) {
-    return 0
-  }
-
-  const figureRegex = /<figure[^>]*class=(["'])[^"']*img_cell[^"']*\1[^>]*>/gi
-  let count = 0
-  while (figureRegex.exec(section) !== null) {
-    count += 1
-  }
-  return count
-}
-
-function describeFetchError(error: unknown): string {
-  if (!(error instanceof Error)) {
-    return "unknown error"
-  }
-
-  const cause = error.cause as { code?: unknown; reason?: unknown } | undefined
-  const causeCode = typeof cause?.code === "string" ? ` (${cause.code})` : ""
-  const causeReason = typeof cause?.reason === "string" ? `: ${cause.reason}` : ""
-  return `${error.name}: ${error.message}${causeCode}${causeReason}`
-}
-
-function isTimeoutError(error: unknown): boolean {
-  return error instanceof Error && error.name === "TimeoutError"
-}
-
-function getFetchErrorCode(error: unknown): string | null {
-  if (!(error instanceof Error)) {
-    return null
-  }
-
-  const cause = error.cause as { code?: unknown } | undefined
-  return typeof cause?.code === "string" ? cause.code : null
-}
-
-function shouldRetryFetchError(error: unknown): boolean {
-  if (isTimeoutError(error)) {
-    return true
-  }
-
-  const code = getFetchErrorCode(error)
-  if (!code) {
-    return false
-  }
-
-  return code === "ECONNRESET" || code === "ETIMEDOUT"
-}
-
-async function fetchRailwayzSearch(searchBody: string): Promise<{
-  response: Awaited<ReturnType<typeof fetchTextWithProxy>> | null
-  attempts: RailwayzAttemptDebug[]
-  selectedUrl: string | null
-}> {
-  const errors: string[] = []
-  const attempts: RailwayzAttemptDebug[] = []
-
-  for (const url of RAILWAYZ_SEARCH_URLS) {
-    for (let attempt = 1; attempt <= RAILWAYZ_MAX_ATTEMPTS_PER_URL; attempt += 1) {
-      try {
-        const response = await fetchTextWithProxy(url, {
-          method: "POST",
-          headers: {
-            Accept:
-              "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
-            "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
-            "Cache-Control": "max-age=0",
-            "Content-Type": "application/x-www-form-urlencoded",
-            Origin: RAILWAYZ_BASE_URL,
-            Referer: `${RAILWAYZ_BASE_URL}/photolines/`,
-            "Upgrade-Insecure-Requests": "1",
-            "User-Agent":
-              "Mozilla/5.0 (Linux; Android 8.0.0; SM-G955U Build/R16NW) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Mobile Safari/537.36",
-          },
-          body: searchBody,
-          timeoutMs: RAILWAYZ_REQUEST_TIMEOUT_MS,
-          useProxy: false,
-        })
-
-        attempts.push({
-          url,
-          attempt,
-          status: response.status,
-          error: null,
-          redirected: response.redirected,
-          finalUrl: response.url,
-        })
-
-        if (response.ok && new URL(response.url).pathname !== "/photolines/search/") {
-          return { response, attempts, selectedUrl: url }
-        }
-
-        if (response.ok) {
-          errors.push(`${url} (attempt ${attempt}): returned search page`)
-          break
-        }
-
-        errors.push(`${url} (attempt ${attempt}): HTTP ${response.status}`)
-      } catch (error) {
-        attempts.push({
-          url,
-          attempt,
-          status: null,
-          error: describeFetchError(error),
-          redirected: null,
-          finalUrl: null,
-        })
-        errors.push(`${url} (attempt ${attempt}): ${describeFetchError(error)}`)
-        if (!shouldRetryFetchError(error)) {
-          break
-        }
-      }
-    }
-  }
-
-  console.warn(`Railwayz photos search failed. ${errors.join("; ")}`)
-  return { response: null, attempts, selectedUrl: null }
-}
-
 export async function POST(request: NextRequest) {
-  try {
-    const body = (await request.json().catch(() => null)) as
-      | { esrCode?: unknown; stationTitle?: unknown }
-      | null
-    const esrCode = typeof body?.esrCode === "string" ? body.esrCode.trim() : ""
-    const stationTitle =
-      typeof body?.stationTitle === "string" ? body.stationTitle.trim() : ""
-    const searchQueries = Array.from(new Set([esrCode, stationTitle].filter(Boolean)))
-    const cacheKey = getStationPhotosCacheKey(esrCode, stationTitle)
-    const cachedResponse = readStationPhotosCache(cacheKey)
-    if (cachedResponse) {
-      return stationPhotosJson(cachedResponse)
-    }
+  const body = (await request.json().catch(() => null)) as
+    | { esrCode?: unknown; stationTitle?: unknown }
+    | null
+  const esrCode = typeof body?.esrCode === "string" ? body.esrCode.trim() : ""
+  const stationTitle = typeof body?.stationTitle === "string" ? body.stationTitle.trim() : ""
+  const cacheKey = getStationPhotosCacheKey(esrCode, stationTitle)
+  const manifest = await readStationPhotosManifest()
 
-    const debugInfo: RailwayzDebugInfo = {
-      searchQueries,
-      attempts: [],
-      selectedQuery: null,
-      selectedUrl: null,
-      finalResponseUrl: null,
-      htmlLength: 0,
-      hasPhotosSection: false,
-      figureCountInSection: 0,
-      htmlSnippet: "",
-    }
-
-    if (searchQueries.length === 0) {
-      return stationPhotosJson({ photos: [] as StationPhotoItem[], debug: debugInfo })
-    }
-
-    for (const [queryIndex, query] of searchQueries.entries()) {
-      const searchBody = new URLSearchParams({ searchstation: query }).toString()
-      const fetchResult = await fetchRailwayzSearch(searchBody)
-      debugInfo.attempts.push(...fetchResult.attempts)
-      if (!fetchResult.response) {
-        continue
-      }
-
-      const html = fetchResult.response.text
-      const photoSources = parsePhotoSourcesFromHtml(html)
-      debugInfo.selectedQuery = query
-      debugInfo.selectedUrl = fetchResult.selectedUrl
-      debugInfo.finalResponseUrl = fetchResult.response.url
-      debugInfo.htmlLength = html.length
-      debugInfo.hasPhotosSection = Boolean(extractPhotosSection(html))
-      debugInfo.figureCountInSection = countFiguresInPhotosSection(html)
-      debugInfo.htmlSnippet = html.slice(0, 1200)
-      const photos = photoSources
-      if (photos.length > 0) {
-        const response = { photos, debug: debugInfo }
-        writeStationPhotosCache(cacheKey, response)
-        return stationPhotosJson(response)
-      }
-
-      // If we got HTML but no photos for this query, keep trying next query.
-      if (queryIndex < searchQueries.length - 1) {
-        continue
-      }
-    }
-
-    const response = { photos: [] as StationPhotoItem[], debug: debugInfo }
-    writeStationPhotosCache(cacheKey, response)
-    return stationPhotosJson(response)
-  } catch (err) {
-    console.warn(`Station photos parser failed. ${describeFetchError(err)}`)
-    return stationPhotosJson({
-      photos: [] as StationPhotoItem[],
-      debug: {
-        searchQueries: [],
-        attempts: [],
-        selectedQuery: null,
-        selectedUrl: null,
-        finalResponseUrl: null,
-        htmlLength: 0,
-        hasPhotosSection: false,
-        figureCountInSection: 0,
-        htmlSnippet: "",
-      } satisfies RailwayzDebugInfo,
-    })
-  }
+  return stationPhotosJson({
+    photos: cacheKey ? (manifest?.stations?.[cacheKey] ?? []) : [],
+    debug: {
+      source: "local-manifest",
+      manifestFound: Boolean(manifest),
+      cacheKey,
+      generatedAt: manifest?.generatedAt ?? null,
+      limit: typeof manifest?.limit === "number" ? manifest.limit : null,
+    },
+  })
 }

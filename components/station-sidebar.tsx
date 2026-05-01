@@ -34,6 +34,28 @@ type StationSidebarProps = {
     onClose: () => void;
 };
 
+function stationPhotoImageProxyUrl(
+    photo: StationPhotoItem,
+    stationScope: string,
+    index: number
+): string {
+    if (photo.imageUrl.startsWith("/")) {
+        return photo.imageUrl;
+    }
+
+    let filename = "photo";
+    try {
+        filename =
+            new URL(photo.imageUrl).pathname.split("/").filter(Boolean).pop() ??
+            filename;
+    } catch {
+        filename = photo.imageUrl.slice(-24) || filename;
+    }
+
+    const cacheKey = encodeURIComponent(`${stationScope}-${index}-${filename}`);
+    return `/api/stations/photos/image/${cacheKey}?src=${encodeURIComponent(photo.imageUrl)}`;
+}
+
 export function StationSidebar({
     station,
     schedule,
@@ -167,8 +189,15 @@ export function StationSidebar({
     }, [isLightboxOpen]);
 
     const canNavigatePhotos = visiblePhotos.length > 1;
+    const stationImageScope = visibleStation
+        ? (visibleStation.esrCode ?? visibleStation.title)
+        : "";
     const currentImageUrl = currentPhoto
-        ? `/api/stations/photos/image?src=${encodeURIComponent(currentPhoto.imageUrl)}`
+        ? stationPhotoImageProxyUrl(
+              currentPhoto,
+              stationImageScope,
+              currentPhotoIndex
+          )
         : null;
 
     useEffect(() => {
