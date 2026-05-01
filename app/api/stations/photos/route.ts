@@ -1,6 +1,5 @@
-import { Buffer } from "node:buffer"
 import { NextRequest, NextResponse } from "next/server"
-import { fetchBufferWithProxy, fetchTextWithProxy } from "@/lib/proxy-http"
+import { fetchTextWithProxy } from "@/lib/proxy-http"
 
 const RAILWAYZ_BASE_URL = "https://railwayz.info"
 const RAILWAYZ_SEARCH_URLS = [
@@ -17,7 +16,7 @@ const STATION_PHOTOS_RESPONSE_HEADERS = {
 }
 
 type StationPhotoItem = {
-  imageDataUrl: string
+  imageUrl: string
   photoPageUrl: string
   caption: string
 }
@@ -160,41 +159,6 @@ function toFullSizeRailwayzImageUrl(imageUrl: string): string {
   return imageUrl.replace(/_s(?=\.(?:webp|jpg|jpeg|png|gif)(?:\?|$))/i, "")
 }
 
-function resolveContentType(rawContentType: string | string[] | undefined): string {
-  const headerValue = Array.isArray(rawContentType) ? rawContentType[0] : rawContentType
-  if (!headerValue) {
-    return "application/octet-stream"
-  }
-
-  return headerValue.split(";")[0]?.trim() || "application/octet-stream"
-}
-
-async function fetchImageAsDataUrl(imageUrl: string): Promise<string | null> {
-  try {
-    const response = await fetchBufferWithProxy(imageUrl, {
-      headers: {
-        Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
-        "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
-        Referer: "https://railwayz.info/photolines/",
-        "User-Agent":
-          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
-      },
-      timeoutMs: RAILWAYZ_REQUEST_TIMEOUT_MS,
-      useProxy: false,
-    })
-
-    if (!response.ok) {
-      return null
-    }
-
-    const contentType = resolveContentType(response.headers["content-type"])
-    const base64 = Buffer.from(response.buffer).toString("base64")
-    return `data:${contentType};base64,${base64}`
-  } catch {
-    return null
-  }
-}
-
 function extractPhotosSection(html: string): string | null {
   const sectionStartMatch = /<section[^>]*id=(["'])photos\1[^>]*>/i.exec(html)
   if (!sectionStartMatch || sectionStartMatch.index < 0) {
@@ -268,27 +232,6 @@ function parsePhotoSourcesFromHtml(html: string): ParsedStationPhotoSource[] {
   }
 
   return photos
-}
-
-async function resolvePhotoSourcesToBase64(
-  photoSources: ParsedStationPhotoSource[],
-): Promise<StationPhotoItem[]> {
-  const resolvedPhotos = await Promise.all(
-    photoSources.map(async (photoSource) => {
-      const imageDataUrl = await fetchImageAsDataUrl(photoSource.imageUrl)
-      if (!imageDataUrl) {
-        return null
-      }
-
-      return {
-        imageDataUrl,
-        photoPageUrl: photoSource.photoPageUrl,
-        caption: photoSource.caption,
-      } satisfies StationPhotoItem
-    }),
-  )
-
-  return resolvedPhotos.filter((photo): photo is StationPhotoItem => photo !== null)
 }
 
 function countFiguresInPhotosSection(html: string): number {
@@ -460,7 +403,7 @@ export async function POST(request: NextRequest) {
       debugInfo.hasPhotosSection = Boolean(extractPhotosSection(html))
       debugInfo.figureCountInSection = countFiguresInPhotosSection(html)
       debugInfo.htmlSnippet = html.slice(0, 1200)
-      const photos = await resolvePhotoSourcesToBase64(photoSources)
+      const photos = photoSources
       if (photos.length > 0) {
         const response = { photos, debug: debugInfo }
         writeStationPhotosCache(cacheKey, response)

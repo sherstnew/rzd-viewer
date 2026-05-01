@@ -17,7 +17,7 @@ type StationScheduleItem = {
 };
 
 export type StationPhotoItem = {
-    imageDataUrl: string;
+    imageUrl: string;
     photoPageUrl: string;
     caption: string;
 };
@@ -92,9 +92,18 @@ export function StationSidebar({
     }, [visibleStation?.title, visiblePhotos.length]);
 
     useEffect(() => {
-        if (!isDesktop && isLightboxOpen) {
-            closeLightbox();
+        if (isDesktop || !isLightboxOpen) {
+            return;
         }
+
+        const closeId = window.setTimeout(() => {
+            setIsLightboxOpen(false);
+            setIsLightboxImageLoading(true);
+        }, 0);
+
+        return () => {
+            window.clearTimeout(closeId);
+        };
     }, [isDesktop, isLightboxOpen]);
 
     const currentPhoto = useMemo(() => {
@@ -162,7 +171,9 @@ export function StationSidebar({
     }
 
     const canNavigatePhotos = visiblePhotos.length > 1;
-    const currentImageUrl = currentPhoto?.imageDataUrl ?? null;
+    const currentImageUrl = currentPhoto
+        ? `/api/stations/photos/image?src=${encodeURIComponent(currentPhoto.imageUrl)}`
+        : null;
 
     return (
         <>

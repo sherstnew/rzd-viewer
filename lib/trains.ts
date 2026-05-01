@@ -1,4 +1,5 @@
 import stationsData from "@/public/assets/stations.json"
+import { getTrainDelayCorrectionMinutes } from "@/lib/train-delay-events"
 
 type Nullable<T> = T | null
 export type McdRouteId =
@@ -169,6 +170,7 @@ const stationCoordinatesByCode = new Map<string, StationCoordinates>(
 
 export function findTrains(time: Date, trainsData: TrainsData): TrainWithCoordinates[] {
   const currentTimeMs = time.getTime()
+  const minuteMs = 60 * 1000
 
   function toTimeMs(value: Nullable<string>): number | null {
     if (!value) {
@@ -186,7 +188,16 @@ export function findTrains(time: Date, trainsData: TrainsData): TrainWithCoordin
     }
   }
 
+  function trainDelayCorrectionMs(train: Train): number {
+    return getTrainDelayCorrectionMinutes(train) * minuteMs
+  }
+
+  function trainScheduleTimeMs(train: Train): number {
+    return currentTimeMs - trainDelayCorrectionMs(train)
+  }
+
   function interpolateFromTerminals(train: Train): TrainWithCoordinates[] {
+    const effectiveTimeMs = trainScheduleTimeMs(train)
     const depTime = toTimeMs(train.departure)
     const arrTime = toTimeMs(train.arrival)
 
@@ -206,12 +217,13 @@ export function findTrains(time: Date, trainsData: TrainsData): TrainWithCoordin
       return []
     }
 
-    const ratio = Math.min(1, Math.max(0, (currentTimeMs - depTime) / (arrTime - depTime)))
+    const ratio = Math.min(1, Math.max(0, (effectiveTimeMs - depTime) / (arrTime - depTime)))
     const longitude =
       departureCoordinates.longitude +
       (arrivalCoordinates.longitude - departureCoordinates.longitude) * ratio
     const latitude =
-      departureCoordinates.latitude + (arrivalCoordinates.latitude - departureCoordinates.latitude) * ratio
+      departureCoordinates.latitude +
+      (arrivalCoordinates.latitude - departureCoordinates.latitude) * ratio
 
     return [
       {
@@ -232,13 +244,27 @@ export function findTrains(time: Date, trainsData: TrainsData): TrainWithCoordin
     ]
   }
 
-  const trains = trainsData.filter(
-    (train) =>
-      new Date(train.departure).getTime() <= currentTimeMs &&
-      currentTimeMs <= new Date(train.arrival).getTime(),
-  )
+  const trains = trainsData.filter((train) => {
+    const effectiveTimeMs = trainScheduleTimeMs(train)
+    const delayCorrectionMs = trainDelayCorrectionMs(train)
+    const scheduledDepartureMs = new Date(train.departure).getTime()
+    const scheduledArrivalMs = new Date(train.arrival).getTime()
+
+    if (!Number.isFinite(scheduledDepartureMs) || !Number.isFinite(scheduledArrivalMs)) {
+      return false
+    }
+
+    if (delayCorrectionMs > 0) {
+      return scheduledDepartureMs <= currentTimeMs && effectiveTimeMs <= scheduledArrivalMs
+    }
+
+    return (
+      scheduledDepartureMs <= effectiveTimeMs && effectiveTimeMs <= scheduledArrivalMs
+    )
+  })
 
   return trains.flatMap((train): TrainWithCoordinates[] => {
+    const effectiveTimeMs = trainScheduleTimeMs(train)
     const stops = train.thread_route?.stops ?? []
 
     if (stops.length < 2) {
@@ -253,8 +279,8 @@ export function findTrains(time: Date, trainsData: TrainsData): TrainWithCoordin
       if (
         stationArrivalTime !== null &&
         stationDepartureTime !== null &&
-        stationArrivalTime <= currentTimeMs &&
-        currentTimeMs <= stationDepartureTime
+        stationArrivalTime <= effectiveTimeMs &&
+        effectiveTimeMs <= stationDepartureTime
       ) {
         const stationCoordinates = stationCoordinatesByCode.get(stop.station.code)
         if (!stationCoordinates) {
@@ -287,7 +313,7 @@ export function findTrains(time: Date, trainsData: TrainsData): TrainWithCoordin
         continue
       }
 
-      if (startTime <= currentTimeMs && currentTimeMs <= endTime) {
+      if (startTime <= effectiveTimeMs && effectiveTimeMs <= endTime) {
         segmentStart = start
         segmentEnd = end
         break
@@ -305,7 +331,7 @@ export function findTrains(time: Date, trainsData: TrainsData): TrainWithCoordin
       return interpolateFromTerminals(train)
     }
 
-    const per = ((currentTimeMs - depTime) / (arrTime - depTime)) * 100
+    const per = ((effectiveTimeMs - depTime) / (arrTime - depTime)) * 100
 
     if (!Number.isFinite(depTime) || !Number.isFinite(arrTime) || arrTime <= depTime) {
       return []

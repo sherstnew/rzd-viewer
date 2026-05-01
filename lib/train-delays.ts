@@ -1,4 +1,5 @@
 import type { Train, TrainDelayEvent } from "@/lib/trains"
+import { getDelayEventMinutes } from "@/lib/train-delay-events"
 
 type DelayKind = "departure" | "arrival"
 
@@ -22,35 +23,12 @@ function formatMinutes(value: number): string {
   return `${value} минут`
 }
 
-function numericMinutes(value: number | null | undefined): number | null {
-  return typeof value === "number" && Number.isFinite(value) ? value : null
-}
-
-function maxDelayMinutes(event: TrainDelayEvent | null | undefined): number | null {
-  if (!event) {
-    return null
-  }
-
-  const values = [
-    numericMinutes(event.minutesFromNew),
-    numericMinutes(event.minutesToNew),
-    numericMinutes(event.minutesFrom),
-    numericMinutes(event.minutesTo),
-  ].filter((value): value is number => value !== null)
-
-  if (values.length === 0) {
-    return null
-  }
-
-  return Math.max(...values)
-}
-
 export function formatDelayEvent(event: TrainDelayEvent | null | undefined): string | null {
   if (!event) {
     return null
   }
 
-  const minutes = maxDelayMinutes(event)
+  const minutes = getDelayEventMinutes(event)
 
   if (event.type === "possible_delay") {
     if (minutes === null || minutes <= 0) {

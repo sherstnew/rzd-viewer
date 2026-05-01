@@ -18,6 +18,7 @@ import { useTheme } from "next-themes"
 import { createRouteEngine } from "@/lib/route-engine"
 import { resolveTrainProgressByStops } from "@/lib/train-progress"
 import { findTrains, Train, TrainWithCoordinates } from "@/lib/trains"
+import { getTrainDelayCorrectionMinutes } from "@/lib/train-delay-events"
 import { getTrainDelayLabels } from "@/lib/train-delays"
 import type { LongDistanceRoute, LongDistanceTrainObject } from "@/lib/long-distance-trains"
 import {
@@ -337,7 +338,9 @@ function buildTrainRouteProgressOverlay(
     return null
   }
 
-  const progress = resolveTrainProgressByStops(nowTimestamp, routeStops)
+  const effectiveNowTimestamp =
+    nowTimestamp - getTrainDelayCorrectionMinutes(train) * 60 * 1000
+  const progress = resolveTrainProgressByStops(effectiveNowTimestamp, routeStops)
   if (progress.mode === "unknown") {
     return null
   }
