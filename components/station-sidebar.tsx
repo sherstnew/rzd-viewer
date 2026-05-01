@@ -166,14 +166,25 @@ export function StationSidebar({
         };
     }, [isLightboxOpen]);
 
-    if (!visibleStation) {
-        return null;
-    }
-
     const canNavigatePhotos = visiblePhotos.length > 1;
     const currentImageUrl = currentPhoto
         ? `/api/stations/photos/image?src=${encodeURIComponent(currentPhoto.imageUrl)}`
         : null;
+
+    useEffect(() => {
+        const resetId = window.setTimeout(() => {
+            setIsCurrentImageLoading(Boolean(currentImageUrl));
+            setIsLightboxImageLoading(Boolean(currentImageUrl));
+        }, 0);
+
+        return () => {
+            window.clearTimeout(resetId);
+        };
+    }, [currentImageUrl]);
+
+    if (!visibleStation) {
+        return null;
+    }
 
     return (
         <>
@@ -218,6 +229,7 @@ export function StationSidebar({
                                     }}
                                 >
                                     <img
+                                        key={currentImageUrl}
                                         src={currentImageUrl}
                                         alt={`Фото станции ${visibleStation.title}`}
                                         className="h-56 w-full object-cover"
@@ -385,6 +397,7 @@ export function StationSidebar({
                                 </div>
                             ) : null}
                             <img
+                                key={currentImageUrl}
                                 src={currentImageUrl}
                                 alt={`Фото станции ${visibleStation.title}`}
                                 className={`absolute inset-0 h-full w-full object-contain transition-opacity ${isLightboxImageLoading ? "opacity-0" : "opacity-100"}`}

@@ -12,7 +12,7 @@ const RAILWAYZ_MAX_ATTEMPTS_PER_URL = 2
 const STATION_PHOTOS_CACHE_TTL_MS = 6 * 60 * 60 * 1000
 const STATION_PHOTOS_CACHE_MAX_ENTRIES = 64
 const STATION_PHOTOS_RESPONSE_HEADERS = {
-  "Cache-Control": "public, max-age=300, s-maxage=21600, stale-while-revalidate=86400",
+  "Cache-Control": "private, no-store",
 }
 
 type StationPhotoItem = {

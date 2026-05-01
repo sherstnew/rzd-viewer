@@ -1023,6 +1023,7 @@ export function MapExample() {
   const [isLongDistanceRouteLoading, setIsLongDistanceRouteLoading] = useState(false)
   const stationClickLockUntilRef = useRef(0)
   const stationPhotosCacheRef = useRef(new Map<string, StationPhotosCacheEntry>())
+  const activeStationPhotosCacheKeyRef = useRef<string | null>(null)
 
   const {
     currentTrain,
@@ -1051,6 +1052,7 @@ export function MapExample() {
   const showPermanentStationLabels = currentZoom >= STATION_LABEL_ZOOM_THRESHOLD
   const trainIconSize = trainIconSizeByZoom(currentZoom)
   const stationMarkerRadius = stationMarkerRadiusByZoom(currentZoom)
+  activeStationPhotosCacheKeyRef.current = currentStation ? stationPhotosCacheKey(currentStation) : null
   const closeStationSidebar = useCallback(() => {
     setCurrentStation(null)
     setStationPhotos([])
@@ -1436,6 +1438,10 @@ export function MapExample() {
       })
       .then((result) => {
         stationPhotosCacheRef.current.set(cacheKey, { photos: result.photos })
+        if (activeStationPhotosCacheKeyRef.current !== cacheKey) {
+          return
+        }
+
         setStationPhotos(result.photos)
         const stationTitle = currentStation.title
         // Railwayz debug trace for local troubleshooting when photos do not appear.
