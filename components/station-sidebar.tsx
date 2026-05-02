@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState, type MouseEvent } from "react";
 type StationScheduleItem = {
     key: string;
     timestamp: number;
+    directionLabel: string;
     arrivalTimeLabel: string | null;
     departureTimeLabel: string | null;
     arrivalDelayLabel: string | null;
@@ -199,6 +200,24 @@ export function StationSidebar({
               currentPhotoIndex
           )
         : null;
+    const scheduleByDirection = useMemo(() => {
+        const groups = new Map<string, StationScheduleItem[]>();
+
+        for (const item of visibleSchedule) {
+            const direction = item.directionLabel.trim() || "Без направления";
+            const group = groups.get(direction);
+            if (group) {
+                group.push(item);
+            } else {
+                groups.set(direction, [item]);
+            }
+        }
+
+        return Array.from(groups.entries()).map(([direction, items]) => ({
+            direction,
+            items,
+        }));
+    }, [visibleSchedule]);
 
     useEffect(() => {
         const resetId = window.setTimeout(() => {
@@ -349,47 +368,60 @@ export function StationSidebar({
                         Нет поездов в ближайший час
                     </div>
                 ) : (
-                    <div className="mt-2 space-y-3">
-                        {visibleSchedule.map((item) => (
-                            <div
-                                key={item.key}
-                                className="rounded-lg border border-border p-3"
+                    <div className="mt-2 space-y-4">
+                        {scheduleByDirection.map(({ direction, items }) => (
+                            <section
+                                key={direction}
+                                className="space-y-2"
+                                aria-label={`Расписание в сторону ${direction}`}
                             >
-                                <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
-                                    {item.arrivalTimeLabel ? (
-                                        <span>
-                                            Прибытие:{" "}
-                                            <span className="font-normal">
-                                                {item.arrivalTimeLabel}
-                                            </span>
-                                            {item.arrivalDelayLabel ? (
-                                                <span className="ml-1 text-xs text-destructive">
-                                                    {item.arrivalDelayLabel}
-                                                </span>
-                                            ) : null}
-                                        </span>
-                                    ) : null}
-                                    {item.departureTimeLabel ? (
-                                        <span>
-                                            Отправление:{" "}
-                                            <span className="font-normal">
-                                                {item.departureTimeLabel}
-                                            </span>
-                                            {item.departureDelayLabel ? (
-                                                <span className="ml-1 text-xs text-destructive">
-                                                    {item.departureDelayLabel}
-                                                </span>
-                                            ) : null}
-                                        </span>
-                                    ) : null}
+                                <div className="text-sm font-medium text-muted-foreground">
+                                    В сторону {direction}
                                 </div>
-                                <div className="mt-1 font-medium">
-                                    {item.trainNumber} {item.trainTitle}
+                                <div className="space-y-3">
+                                    {items.map((item) => (
+                                        <div
+                                            key={item.key}
+                                            className="rounded-lg border border-border p-3"
+                                        >
+                                            <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                                                {item.arrivalTimeLabel ? (
+                                                    <span>
+                                                        Прибытие:{" "}
+                                                        <span className="font-normal">
+                                                            {item.arrivalTimeLabel}
+                                                        </span>
+                                                        {item.arrivalDelayLabel ? (
+                                                            <span className="ml-1 text-xs text-destructive">
+                                                                {item.arrivalDelayLabel}
+                                                            </span>
+                                                        ) : null}
+                                                    </span>
+                                                ) : null}
+                                                {item.departureTimeLabel ? (
+                                                    <span>
+                                                        Отправление:{" "}
+                                                        <span className="font-normal">
+                                                            {item.departureTimeLabel}
+                                                        </span>
+                                                        {item.departureDelayLabel ? (
+                                                            <span className="ml-1 text-xs text-destructive">
+                                                                {item.departureDelayLabel}
+                                                            </span>
+                                                        ) : null}
+                                                    </span>
+                                                ) : null}
+                                            </div>
+                                            <div className="mt-1 font-medium">
+                                                {item.trainNumber} {item.trainTitle}
+                                            </div>
+                                            <div className="text-sm text-muted-foreground break-words">
+                                                {item.routeLabel}
+                                            </div>
+                                        </div>
+                                    ))}
                                 </div>
-                                <div className="text-sm text-muted-foreground break-words">
-                                    {item.routeLabel}
-                                </div>
-                            </div>
+                            </section>
                         ))}
                     </div>
                 )}

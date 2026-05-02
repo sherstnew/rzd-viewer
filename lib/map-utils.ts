@@ -44,6 +44,7 @@ export type RouteDataById = Partial<Record<RouteId, RouteGeoJson>>
 export type StationScheduleItem = {
   key: string
   timestamp: number
+  directionLabel: string
   arrivalTimeLabel: string | null
   departureTimeLabel: string | null
   arrivalDelayLabel: string | null
@@ -399,6 +400,7 @@ export function buildStationSchedule(
       schedule.push({
         key: `${segment.thread.uid}-${sortTimestamp}`,
         timestamp: sortTimestamp,
+        directionLabel: segment.to.title,
         arrivalTimeLabel:
           matchedStopArrivalTimestamp !== null
             ? formatScheduleTime(matchedStopArrivalTimestamp)
@@ -430,6 +432,7 @@ export function buildStationSchedule(
       schedule.push({
         key: `${segment.thread.uid}-segment-departure-${segmentDeparture}`,
         timestamp: segmentDeparture,
+        directionLabel: segment.to.title,
         arrivalTimeLabel: null,
         departureTimeLabel: formatScheduleTime(segmentDeparture),
         arrivalDelayLabel: null,
@@ -444,6 +447,7 @@ export function buildStationSchedule(
       schedule.push({
         key: `${segment.thread.uid}-segment-arrival-${segmentArrival}`,
         timestamp: segmentArrival,
+        directionLabel: segment.to.title,
         arrivalTimeLabel: formatScheduleTime(segmentArrival),
         departureTimeLabel: null,
         arrivalDelayLabel: formatTrainDelay(segment, "arrival"),
