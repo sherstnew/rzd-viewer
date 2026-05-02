@@ -6,6 +6,7 @@
 import { resolveTrainProgressByStops } from "@/lib/train-progress";
 import { getNow } from "@/lib/runtime-mode";
 import { useTrainsStore } from "@/stores/trainsStore";
+import { getTrainDelayCorrectionMinutes } from "@/lib/train-delay-events";
 import { getTrainDelayLabels } from "@/lib/train-delays";
 import { formatDurationToRu } from "@/lib/utils";
 import { ResponsiveSidebarShell } from "@/components/responsive-sidebar-shell";
@@ -126,6 +127,10 @@ export function TrainSidebar() {
     );
     const passedTimeLabel = formatDurationToRu(passedTime);
     const totalTimeLabel = formatDurationToRu(allTime);
+    const delayCorrectionMs = currentTrain
+        ? getTrainDelayCorrectionMinutes(currentTrain) * 60 * 1000
+        : 0;
+    const effectiveNowTimestamp = nowTimestamp - delayCorrectionMs;
 
     const videoRef = useRef<HTMLVideoElement>(null);
 
@@ -154,7 +159,10 @@ export function TrainSidebar() {
         Boolean(povSyncState);
 
     const lastStopIndex = Math.max(0, routeStops.length - 1);
-    const currentSegment = resolveTrainProgressByStops(nowTimestamp, routeStops);
+    const currentSegment = resolveTrainProgressByStops(
+        effectiveNowTimestamp,
+        routeStops
+    );
 
     const runtimeStatusText = (() => {
         const STATUS_EDGE_WINDOW_CAP_MS = 30_000;
@@ -171,8 +179,8 @@ export function TrainSidebar() {
             if (
                 stationArrival === null ||
                 stationDeparture === null ||
-                stationArrival > nowTimestamp ||
-                nowTimestamp > stationDeparture
+                stationArrival > effectiveNowTimestamp ||
+                effectiveNowTimestamp > stationDeparture
             ) {
                 continue;
             }
@@ -196,14 +204,14 @@ export function TrainSidebar() {
 
             if (
                 i > 0 &&
-                nowTimestamp - stationArrival <= adaptiveEdgeWindow
+                effectiveNowTimestamp - stationArrival <= adaptiveEdgeWindow
             ) {
                 return `прибывает к станции ${stationTitle}`;
             }
 
             if (
                 i < lastStopIndex &&
-                stationDeparture - nowTimestamp <= adaptiveEdgeWindow
+                stationDeparture - effectiveNowTimestamp <= adaptiveEdgeWindow
             ) {
                 return `отправляется со станции ${stationTitle}`;
             }
@@ -221,7 +229,8 @@ export function TrainSidebar() {
             const nextStationTitle = nextStop.station.title;
 
             if (startTime !== null && endTime !== null && startTime < endTime) {
-                const legProgress = (nowTimestamp - startTime) / (endTime - startTime);
+                const legProgress =
+                    (effectiveNowTimestamp - startTime) / (endTime - startTime);
                 if (legProgress <= 0.1) {
                     return `отправляется со станции ${activeStop.station.title}`;
                 }
@@ -237,10 +246,10 @@ export function TrainSidebar() {
             Number.isFinite(departureTimestamp) &&
             Number.isFinite(arrivalTimestamp)
         ) {
-            if (nowTimestamp <= departureTimestamp + 60_000) {
+            if (effectiveNowTimestamp <= departureTimestamp + 60_000) {
                 return `отправляется со станции ${currentTrain?.from.title ?? ""}`.trim();
             }
-            if (nowTimestamp >= arrivalTimestamp - 60_000) {
+            if (effectiveNowTimestamp >= arrivalTimestamp - 60_000) {
                 return `прибывает к станции ${currentTrain?.to.title ?? ""}`.trim();
             }
         }
