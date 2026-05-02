@@ -9,7 +9,6 @@ import {
   type RussiaGeoFilter,
   type RussiaRegionsGeoJson,
 } from "@/lib/long-distance-trains"
-import { fetchJsonWithProxy } from "@/lib/proxy-http"
 
 const RZD_ROUTE_BASE_URL = "https://www.rzd.ru/routemap/source/current/train"
 const ROUTE_CACHE_TTL_MS = 60_000
@@ -49,18 +48,20 @@ async function fetchRzdRoute(number: string, date: string) {
   const url = new URL(`${RZD_ROUTE_BASE_URL}/${encodeURIComponent(number)}/departure/${date}`)
   url.searchParams.set("useTimeZone", "true")
 
-  const response = await fetchJsonWithProxy<unknown>(url, {
+  const response = await fetch(url, {
     headers: {
       accept: "application/json,text/plain,*/*",
     },
+    cache: "no-store",
+    signal: AbortSignal.timeout(15_000),
   })
+  const text = await response.text()
 
   if (!response.ok) {
-    const text = response.text
     throw new Error(`Маршрут ${number} не найден (${response.status}): ${text.slice(0, 300)}`)
   }
 
-  return response.json as NormalizableRzdRoutePayload
+  return JSON.parse(text) as NormalizableRzdRoutePayload
 }
 
 export async function GET(request: Request) {

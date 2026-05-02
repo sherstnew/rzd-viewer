@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server"
-import { fetchBufferWithProxy } from "@/lib/proxy-http"
 
 const ALLOWED_HOSTS = new Set(["railwayz.info", "www.railwayz.info"])
 const IMAGE_FETCH_TIMEOUT_MS = 15_000
@@ -39,7 +38,7 @@ export async function handleStationPhotoImageRequest(request: NextRequest) {
   }
 
   try {
-    const response = await fetchBufferWithProxy(upstreamUrl, {
+    const response = await fetch(upstreamUrl, {
       headers: {
         Accept: "image/avif,image/webp,image/apng,image/*,*/*;q=0.8",
         "Accept-Language": "ru-RU,ru;q=0.9,en;q=0.8",
@@ -47,8 +46,8 @@ export async function handleStationPhotoImageRequest(request: NextRequest) {
         "User-Agent":
           "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36",
       },
-      timeoutMs: IMAGE_FETCH_TIMEOUT_MS,
-      useProxy: false,
+      cache: "no-store",
+      signal: AbortSignal.timeout(IMAGE_FETCH_TIMEOUT_MS),
     })
 
     if (!response.ok) {
@@ -61,14 +60,13 @@ export async function handleStationPhotoImageRequest(request: NextRequest) {
       )
     }
 
-    return new NextResponse(new Uint8Array(response.buffer), {
+    const buffer = await response.arrayBuffer()
+
+    return new NextResponse(new Uint8Array(buffer), {
       status: 200,
       headers: {
         ...IMAGE_RESPONSE_HEADERS,
-        "Content-Type":
-          typeof response.headers["content-type"] === "string"
-            ? response.headers["content-type"]
-            : DEFAULT_CONTENT_TYPE,
+        "Content-Type": response.headers.get("content-type") ?? DEFAULT_CONTENT_TYPE,
       },
     })
   } catch {

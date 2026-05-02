@@ -1,5 +1,4 @@
 import { NextResponse } from "next/server"
-import { fetchTextWithProxy } from "@/lib/proxy-http"
 import stationsData from "@/public/assets/stations.json"
 import type { TrainDelayEvent } from "@/lib/trains"
 
@@ -275,15 +274,17 @@ async function fetchBatchDelays(date: string): Promise<{
   let responseText = ""
 
   try {
-    const response = await fetchTextWithProxy(YANDEX_BATCH_URL, {
+    const response = await fetch(YANDEX_BATCH_URL, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
       body,
+      cache: "no-store",
+      signal: AbortSignal.timeout(15_000),
     })
     responseStatus = response.status
-    responseText = response.text
+    responseText = await response.text()
   } catch (error) {
     console.error("[trains/delays] batch request failed", error)
     throw error
