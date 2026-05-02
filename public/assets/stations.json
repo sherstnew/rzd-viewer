@@ -1149,17 +1149,6 @@
     "direction": "Ленинградское"
   },
   {
-    "title": "Москва Ярославская Тур",
-    "longitude": 37.65727420822767,
-    "latitude": 55.77778761318937,
-    "transport_type": "train",
-    "station_type": "train_station",
-    "codes": {
-      "yandex_code": "s9878548"
-    },
-    "direction": ""
-  },
-  {
     "title": "Москва Октябрьская Тур",
     "longitude": 37.654526354331075,
     "latitude": 55.777252991297246,
@@ -1167,17 +1156,6 @@
     "station_type": "station",
     "codes": {
       "yandex_code": "s9878667"
-    },
-    "direction": ""
-  },
-  {
-    "title": "Москва Кур Турист",
-    "longitude": 37.66198364167971,
-    "latitude": 55.756736237457574,
-    "transport_type": "train",
-    "station_type": "train_station",
-    "codes": {
-      "yandex_code": "s9879063"
     },
     "direction": ""
   },

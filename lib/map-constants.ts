@@ -43,6 +43,7 @@ const DOMODEDOVO_STATION_CODE = "s9600811"
 const PUSHKINO_STATION_CODE = "s9600701"
 const BOLSHEVO_STATION_CODE = "s9602217"
 const LYUBLINO_STATION_CODE = "s9601788"
+const KURSKY_STATION_CODE = "s2000001"
 
 export const VIDEO_SECTION_START_TITLE = "Красный Строитель"
 export const VIDEO_SECTION_END_TITLE = "Подольск"
@@ -120,7 +121,8 @@ export const ROUTE_COLOR_BY_ID: Record<RouteId, string> = {
 }
 
 export const FORCED_STATION_CODES_BY_ROUTE: Partial<Record<RouteId, readonly string[]>> = {
-  mcd2: [LYUBLINO_STATION_CODE],
+  mcd2: [LYUBLINO_STATION_CODE, KURSKY_STATION_CODE],
+  mcd4: [KURSKY_STATION_CODE],
 }
 
 export function trainIconSizeByZoom(zoom: number): number {
