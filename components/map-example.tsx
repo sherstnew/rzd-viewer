@@ -116,6 +116,8 @@ const longDistanceTrainsCache = new Map<
 >()
 const trainIconCache = new Map<string, L.DivIcon>()
 const longDistanceIconCache = new Map<string, L.DivIcon>()
+const VIEWPORT_BOUNDS_PRECISION = 4
+const JSONP_CALLBACK_GRACE_MS = 30_000
 
 const { stationCoordinatesByCode, stationCoordinatesByTitle, stationCandidates } =
   buildStationIndexes(stationsData)
@@ -572,35 +574,78 @@ function SuburbanViewportWatcher({
   enabled: boolean
   onBoundsChange: (bounds: SuburbanViewportBounds | null) => void
 }) {
+  const animationFrameRef = useRef<number | null>(null)
+  const lastBoundsKeyRef = useRef<string | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current)
+      }
+    }
+  }, [])
+
   const updateBounds = useCallback(
     (map: L.Map) => {
       if (!enabled) {
-        onBoundsChange(null)
+        if (lastBoundsKeyRef.current !== null) {
+          lastBoundsKeyRef.current = null
+          onBoundsChange(null)
+        }
         return
       }
 
       const bounds = map.getBounds()
-      onBoundsChange({
+      const nextBounds = {
         west: bounds.getWest(),
         east: bounds.getEast(),
         south: bounds.getSouth(),
         north: bounds.getNorth(),
-      })
+      }
+      const boundsKey = [
+        nextBounds.west,
+        nextBounds.east,
+        nextBounds.south,
+        nextBounds.north,
+      ]
+        .map((value) => value.toFixed(VIEWPORT_BOUNDS_PRECISION))
+        .join("|")
+
+      if (lastBoundsKeyRef.current === boundsKey) {
+        return
+      }
+
+      lastBoundsKeyRef.current = boundsKey
+      onBoundsChange(nextBounds)
     },
     [enabled, onBoundsChange],
   )
 
+  const scheduleBoundsUpdate = useCallback(
+    (map: L.Map) => {
+      if (animationFrameRef.current !== null) {
+        window.cancelAnimationFrame(animationFrameRef.current)
+      }
+
+      animationFrameRef.current = window.requestAnimationFrame(() => {
+        animationFrameRef.current = null
+        updateBounds(map)
+      })
+    },
+    [updateBounds],
+  )
+
   const map = useMapEvents({
     moveend(event) {
-      updateBounds(event.target)
+      scheduleBoundsUpdate(event.target)
     },
     zoomend(event) {
-      updateBounds(event.target)
+      scheduleBoundsUpdate(event.target)
     },
   })
   useEffect(() => {
-    updateBounds(map)
-  }, [map, updateBounds])
+    scheduleBoundsUpdate(map)
+  }, [map, scheduleBoundsUpdate])
 
   return null
 }
@@ -695,16 +740,21 @@ function fetchLongDistanceObjectsWithJsonpFallback(
     const windowWithCallback = window as typeof window & Record<string, (payload: YandexLiveObjectsPayload) => void>
     const script = document.createElement("script")
     const url = new URL(YANDEX_LIVE_OBJECTS_URL)
+    let isSettled = false
     const timeoutId = window.setTimeout(() => {
       cleanup()
       reject(new Error("Yandex live objects JSONP request timed out"))
     }, 10_000)
 
     function cleanup() {
+      isSettled = true
       window.clearTimeout(timeoutId)
       signal.removeEventListener("abort", handleAbort)
-      delete windowWithCallback[callbackName]
       script.remove()
+      windowWithCallback[callbackName] = () => {}
+      window.setTimeout(() => {
+        delete windowWithCallback[callbackName]
+      }, JSONP_CALLBACK_GRACE_MS)
     }
 
     function handleAbort() {
@@ -713,6 +763,10 @@ function fetchLongDistanceObjectsWithJsonpFallback(
     }
 
     windowWithCallback[callbackName] = (payload) => {
+      if (isSettled) {
+        return
+      }
+
       cleanup()
       resolve(normalizeLongDistanceLiveObjects(payload))
     }
