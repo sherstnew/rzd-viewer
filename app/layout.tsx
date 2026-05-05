@@ -3,6 +3,7 @@ import { Inter } from "next/font/google"
 import type { Metadata } from "next"
 
 import "./globals.css"
+import { ClientErrorListeners } from "@/components/client-error-listeners"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Header } from "@/components/header"
 import { cn } from "@/lib/utils"
@@ -75,6 +76,7 @@ export default function RootLayout({
     >
       <body>
         <ThemeProvider>
+          <ClientErrorListeners />
           <div className="flex h-svh flex-col bg-background text-foreground">
             <Header />
             {children}

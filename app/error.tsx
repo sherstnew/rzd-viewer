@@ -2,6 +2,7 @@
 
 import { RotateCcw } from "lucide-react"
 import { resetPersistedAppStores } from "@/lib/app-reset"
+import { logClientError } from "@/lib/client-error-logging"
 import { useEffect } from "react"
 
 export default function Error({
@@ -12,7 +13,7 @@ export default function Error({
   reset: () => void
 }) {
   useEffect(() => {
-    console.error("[app/error]", error)
+    logClientError("[app/error]", error)
   }, [error])
 
   return (
