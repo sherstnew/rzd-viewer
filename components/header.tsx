@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react"
 import { AlertTriangle, Bell, Loader2 } from "lucide-react"
-import Image from "next/image"
 
 import { ThemeToggle } from "@/components/theme-toggle"
 import { Button } from "@/components/ui/button"
@@ -131,15 +130,6 @@ export function Header() {
     <header className="relative z-50 border-b bg-background/80 backdrop-blur">
       <div className="flex w-full items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4">
         <h1 className="flex min-w-0 items-center gap-2 truncate font-serif text-base font-medium sm:text-lg">
-          <Image
-            src="/leaflet/rzd.svg"
-            alt=""
-            aria-hidden="true"
-            width={32}
-            height={14}
-            className="h-[0.9rem] w-auto shrink-0 sm:h-[1rem]"
-            priority
-          />
           <span className="truncate">Карта поездов</span>
         </h1>
 
