@@ -3,7 +3,7 @@ WORKDIR /app
 ENV NEXT_TELEMETRY_DISABLED=1
 
 FROM base AS deps
-COPY package.json package-lock.json ./
+COPY package.json bun.lock ./
 RUN bun install
 
 FROM base AS builder
